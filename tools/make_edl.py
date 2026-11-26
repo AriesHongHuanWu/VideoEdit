@@ -7,6 +7,7 @@ Structure: hook (b0-4) -> postcards intro (b4-16) -> Milano/Venezia (b16-40) -> 
 import json, os, sys
 sys.path.insert(0, os.path.dirname(__file__))
 from edl_lib import Timeline, fb, tb, FPB
+from engine import W, H
 
 P = sys.argv[1]; ROUGH = '--rough' in sys.argv
 os.makedirs(P, exist_ok=True)
@@ -92,127 +93,158 @@ def hero(sid, k0, k1, fx=(), punch=True, **kw):
             fx.append({'type': 'punch', 'times': ts, 'amount': 0.045})
     return seg_shot(sid, fx=fx, **kw)
 
-# ------------------------------------------------------------------ HOOK  (b0 - b4): HUD hero breaking into red graphic punctuation
-F1 = 1 / 60
-hook_hud = rome.get('hook_hud', 'v_hud')
-T.until_beat(1, hero(hook_hud, 0, 1, cache_offset=rome.get('hook_hud_off', 30), zoom=[[0, 1.0], [tb(1), 1.04, 'linear']],
-                     fx=[{'type': 'flash_pop', 'at': 0.0}, {'type': 'hud', 'track': 'hook', 'label': rome.get('hook_label', 'TRK_01  TAXI'), 't0': 0.0, 't1': 9},
-                         {'type': 'red_invert', 't0': tb(1) - 2 * F1, 't1': 9}]))
-T.tracks['hook'] = os.path.join(P, 'track_hook.json')
-T.sound(0.0, 'boom', gain=0); T.sound(0.0, 'impact', gain=-1); T.sound(0.07, 'click', gain=-7, f=3600); T.sound(0.15, 'chatter', dur=0.2, gain=-12)
-T.until_beat(1.75, hero('m_vault', 1, 1.75, cache_offset=50, fx=[{'type': 'redblock', 't0': 0.0, 't1': 5 * F1, 'x0': 0.56, 'slide': 0.08}]))
-T.sound(tb(1), 'click', gain=-9, f=2400)
-T.until_beat(2, dict(type='card', card='white', fx=[{'type': 'redbox', 't0': 0.0, 't1': 9}]))       # red box on white collapses
-T.sound(tb(1.75), 'shutter', gain=-10, seed=61)
-T.until_beat(3, hero('m_prima', 2, 3, zoom=[[0, 1.0], [tb(1), 1.10, 'out']],
-                     fx=[{'type': 'letterbox', 't0': 0.0, 't1': tb(0.75), 'h': 130, 'switch': True},
-                         {'type': 'label', 'text': 'MILANO CENTRALE', 'sub': '20.05.2026', 'idx': '01', 't0': 0.05, 't1': 9}]))
-T.sound(tb(2), 'whoosh', dur=0.22, gain=-11, pan_from=0, pan_to=0, peak_pos=0.4)
-T.until_beat(4, hero('m_italo', 3, 4, cache_offset=0, zoom=[[0, 1.0], [tb(1), 1.06, 'linear']],
-                     fx=[{'type': 'bleach', 't0': 0.0, 't1': 2 * F1, 'tint': (1.0, 0.9, 0.86)}]))
-T.sound(tb(3), 'shutter', gain=-11, seed=62)
+# ------------------------------------------------------------------ complete 2D transitions (trans2d.py) with matched SFX
+_tseed = [100]
+def TR(kind, n_out, n_in, gain=-11.0, sfx=True, **kw):
+    """Transition straddling the cut into the segment just added; the whoosh peak lands on the cut."""
+    T.tr(kind, n_out, n_in, **kw)
+    if not sfx:
+        return
+    t = T.segs[-1]['f0'] / 60.0
+    span = (n_out + n_in) / 60.0
+    d = kw.get('dir', 1); _tseed[0] += 1; sd = _tseed[0]
+    if kind in ('push', 'whip') and kw.get('axis', 'x') == 'x':
+        pf, pt = 0.55 * d, -0.55 * d                    # picture travels left for dir=+1 -> sound right-to-left
+    elif kind == 'redbar':
+        pf, pt = -0.55 * d, 0.55 * d                    # bar travels left-to-right for dir=+1
+    else:
+        pf = pt = 0.0
+    if kind in ('push', 'whip', 'redbar', 'slice', 'doors'):
+        T.sound(t, 'whoosh', dur=max(0.22, span + 0.14), gain=gain, pan_from=pf, pan_to=pt, peak_pos=0.62, seed=sd)
+        if kind in ('slice', 'doors', 'redbar'):
+            T.sound(t, 'click', gain=gain + 1, f=2400 + 90 * (sd % 7), seed=sd)
+    elif kind == 'zoom':
+        T.sound(t, 'whoosh', dur=max(0.25, span + 0.18), gain=gain, pan_from=0, pan_to=0, peak_pos=0.7, seed=sd)
+        T.sound(t, 'impact', gain=gain - 1, bright=0.6, seed=sd)
+    elif kind == 'pip':
+        T.sound(t - n_out / 60.0, 'click', gain=gain + 2, f=2900, seed=sd)
+        T.sound(t, 'whoosh', dur=0.24, gain=gain - 1, pan_from=0.4, pan_to=0, peak_pos=0.6, seed=sd)
+    elif kind == 'flash':
+        T.sound(t, 'impact', gain=gain + 1, bright=0.9, seed=sd); T.sound(t, 'shutter', gain=gain - 1, seed=sd)
 
-# ------------------------------------------------------------------ INTRO "postcards from ITALIA" (b4 - b16)
+def KICK(*ts, amp=11.0):
+    """Camera-motion hit (decaying shake) at local times ts."""
+    return {'type': 'kick', 'times': list(ts), 'amp': amp}
+
+F1 = 1 / 60
+# ------------------------------------------------------------------ HOOK (b0 - b4): HUD lock-on, zoom-through the tracked boat into Milano Centrale
+hook_hud = rome.get('hook_hud', 'v_hud')
+T.until_beat(2, hero(hook_hud, 0, 2, cache_offset=rome.get('hook_hud_off', 30), zoom=[[0, 1.0], [tb(2), 1.05, 'linear']],
+                     fx=[{'type': 'flash_pop', 'at': 0.0}, {'type': 'hud', 'track': 'hook', 'label': rome.get('hook_label', 'TRK_01  TAXI'), 't0': 0.0, 't1': 9}]))
+T.tracks['hook'] = os.path.join(P, 'track_hook.json')
+T.sound(0.0, 'boom', gain=0); T.sound(0.0, 'impact', gain=-1); T.sound(0.07, 'click', gain=-7, f=3600); T.sound(0.15, 'chatter', dur=0.25, gain=-12)
+T.until_beat(4, hero('m_vault', 2, 4, zoom=[[0, 1.0], [tb(2), 1.06, 'linear']],
+                     fx=[{'type': 'label', 'text': 'MILANO CENTRALE', 'sub': '20.05.2026', 'idx': '01', 't0': 0.18, 't1': 9}]))
+TR('zoom', 8, 8, gain=-8, z=0.75, ca_track='hook', ca=(0.745 * W, 0.47 * H), cb=(W / 2, 0.40 * H), flash=0.25)
+hook_vault = T.segs[-1]
+
+# ------------------------------------------------------------------ INTRO "postcards from ITALIA" (b4 - b16): strips slide over the moving hall
 strips = [{'shot': 'm_vault2'}, {'shot': 'v_simeone', 'offset': 20}, {'shot': 'v_bow'}, {'shot': 'v_campanile', 'cx': 0.56},
           {'shot': 'v_rialto'}, {'shot': rome.get('strip', 'v_salute')}]
 band = [{'shot': 'v_hud', 'offset': 40}, {'shot': rome['band'][0]}, {'shot': 'v_bowsalute'}, {'shot': rome['band'][1]},
         {'shot': 'v_gondolas'}, {'shot': rome['band'][2]}]
-T.until_beat(16, dict(type='intro', base={'shot': 'm_italo', 'offset': fb(4) - fb(3)}, strips=strips, band=band,
-                      p1=tb(6.5) - tb(4), p2=tb(7.5) - tb(4), p3=tb(10) - tb(4), band_step=tb(11) - tb(10), stagger=0.06,
-                      title_size=330, halation=0.16))
+T.until_beat(16, dict(type='intro', base={'shot': 'm_vault', 'offset': hook_vault['cache_offset'] + hook_vault['f1'] - hook_vault['f0']},
+                      strips=strips, band=band, p1=tb(6.5) - tb(4), p2=tb(7.5) - tb(4), p3=tb(10) - tb(4), band_step=tb(11) - tb(10),
+                      stagger=0.06, title_size=330, halation=0.16))
 T.sound(tb(4) + 0.10, 'whoosh', dur=0.35, gain=-12, pan_from=-0.8, pan_to=0.6)
 T.sound(tb(7.2), 'whoosh', dur=0.35, gain=-12, pan_from=0.5, pan_to=-0.5, peak_pos=0.5)
 T.sound(tb(8), 'chatter', dur=tb(10) - tb(8), rate=24, gain=-12)
 T.sound(tb(10), 'boom', gain=-6, dur=1.2, f0=55, f1=30); T.sound(tb(10), 'click', gain=-7, f=2900)
 
-# ------------------------------------------------------------------ MILANO (b16 - b23): headline held over a rapid montage
-T.until_beat(17, hero('m_vault', 16, 17, zoom=[[0, 1.0], [tb(1), 1.05, 'linear']],
+# ------------------------------------------------------------------ MILANO (b16 - b23)
+MIL = {'type': 'title_top', 'text': 'MILANO', 't0': 0.0, 't1': 9, 'margin': 40, 'anim': False}
+T.until_beat(17, hero('m_vault2', 16, 17, zoom=[[0, 1.0], [tb(1), 1.05, 'linear']],
                       fx=[{'type': 'flash_pop', 'at': 0.0}, {'type': 'title_top', 'text': 'MILANO', 't0': 0.03, 't1': 9, 'margin': 40}]))
 T.sound(tb(16), 'impact', gain=-5, bright=0.7); T.sound(tb(16) + 0.03, 'whoosh', dur=0.25, gain=-12, pan_from=0, pan_to=0, peak_pos=0.3)
-T.until_beat(17.5, hero('v_hall', 17, 17.5, fx=[{'type': 'title_top', 'text': 'MILANO', 't0': 0.0, 't1': 9, 'margin': 40, 'anim': False}]))
-T.until_beat(18, hero('m_prima', 17.5, 18, cache_offset=20, fx=[{'type': 'title_top', 'text': 'MILANO', 't0': 0.0, 't1': 9, 'margin': 40, 'anim': False},
-                                                                  {'type': 'duotone', 't0': 0.0, 't1': 3 * F1}]))
+# headline held over a rapid montage: each hard cut lands with a camera kick
+T.until_beat(17.5, hero('v_hall', 17, 17.5, fx=[MIL, KICK(0.0)]))
+T.until_beat(18, hero('m_prima', 17.5, 18, cache_offset=20, fx=[MIL, KICK(0.0, amp=9)]))
 T.sound(tb(17), 'shutter', gain=-12, seed=63); T.sound(tb(17.5), 'shutter', gain=-12, seed=64)
-T.until_beat(19.5, hero('m_stairs', 18, 19.5, zoom=[[0, 1.0], [tb(1.5), 1.08, 'linear']], fx=[{'type': 'white', 't0': 0.0, 't1': F1}, {'type': 'bw'}]))
-T.sound(tb(18), 'impact', gain=-13, bright=0.3)
-T.until_beat(21, hero('m_italo', 19.5, 21, cache_offset=60, zoom=[[0, 1.02], [tb(1.5), 1.08, 'linear']],
-                      fx=[{'type': 'bleach', 't0': 0.0, 't1': 2 * F1, 'tint': (0.85, 0.97, 1.0)}]))
-T.until_beat(23, hero('m_shed', 21, 23, fx=[{'type': 'letterbox', 't0': 0.0, 't1': tb(1.6), 'h': 140, 'switch': True}]))
-T.sound(tb(21), 'whoosh', dur=0.3, gain=-11, pan_from=0, pan_to=0, peak_pos=0.35)
+T.until_beat(19.5, hero('m_stairs', 18, 19.5, zoom=[[0, 1.0], [tb(1.5), 1.08, 'linear']], fx=[{'type': 'bw'}]))
+TR('doors', 6, 12, axis='v')                       # the headline splits open down the staircase's symmetry axis
+T.until_beat(21, hero('m_italo', 19.5, 21, cache_offset=60, zoom=[[0, 1.02], [tb(1.5), 1.08, 'linear']]))
+TR('whip', 6, 6, dir=1)
+T.until_beat(23, hero('m_shed', 21, 23, fx=[{'type': 'letterbox', 't0': 0.22, 't1': tb(1.6), 'h': 140, 'switch': True}]))
+TR('slice', 6, 12, n=5)
+shed = T.segs[-1]
 # Milano -> Venezia: stutter edit between the station and the first view of Venice
-T.until_beat(24, dict(type='stutter', pattern='AABABBABBBBB', step=2, A={'shot': 'm_shed', 'cache_offset': fb(23) - fb(21)},
+T.until_beat(24, dict(type='stutter', pattern='AABABBABBBBB', step=2, A={'shot': 'm_shed', 'cache_offset': shed['cache_offset'] + shed['f1'] - shed['f0']},
                       B={'shot': 'v_first', 'cache_offset': 0, 'fx': [dict(SOFT, amount=0.38, mist=0.05)]}))
 for k in range(4):
     T.sound(tb(23) + k * 4 / 60, 'click', gain=-12, f=2000 + 400 * k)
+
 # ------------------------------------------------------------------ VENEZIA (b24 - b40)
-T.until_beat(26, dict(type='split', shot='v_bow', cache_offset=0, text='VENEZIA', sub='CANAL GRANDE', size=165, inset_scale=0.54,
-                      inset_cx=575, text_x=1125, expand_out=0.16, fx=[{'type': 'datalines', 't0': tb(2) - 0.3, 't1': tb(2) - 0.2}]))
+T.until_beat(26, dict(type='split', shot='v_bow', cache_offset=0, text='VENEZIA', sub='21.05.2026', size=250, inset_scale=0.54,
+                      inset_cx=575, text_x=1100, expand_out=0.16, fx=[{'type': 'datalines', 't0': tb(2) - 0.3, 't1': tb(2) - 0.2}]))
+TR('push', 5, 6, dir=1, gain=-10)                 # the red card shoves the stutter out
+vcard = T.segs[-1]
 T.sound(tb(24), 'impact', gain=-8, bright=0.5); T.sound(tb(26) - 0.3, 'chatter', dur=0.12, gain=-12)
-T.until_beat(28.5, hero('v_bow', 26, 28.5, cache_offset=fb(26) - fb(24), zoom=[[0, 1.0], [tb(2.5), 1.06, 'linear']],
-                        fx=[{'type': 'tintstrobe', 't0': tb(1), 't1': tb(1) + 8 * F1, 'period': 2},
-                            {'type': 'pip', 'shot': 'v_campanile', 't0': tb(2.5) - 4 * F1, 't1': 9, 'scale': 0.30, 'cx': 0.70, 'cy': 0.42}]))
-T.sound(tb(26) - 0.1, 'whoosh', dur=0.25, gain=-12, pan_from=0, pan_to=0, peak_pos=0.6); T.sound(tb(28.5) - 4 / 60, 'click', gain=-9, f=2600)
-T.until_beat(30, hero('v_campanile', 28.5, 30, cache_offset=4, fx=[{'type': 'duotone', 't0': 0.0, 't1': 4 * F1}]))
-T.sound(tb(28.5), 'shutter', gain=-11, seed=65)
-T.until_beat(32, hero('v_gondolier', 30, 32, fx=[{'type': 'roto_text', 'text': 'GONDOLA', 'size': 520, 'x': 960, 'y': 520, 't0': 0.02, 't1': 9,
-                                                   'matte_dir': os.path.join(P, 'mask_gondolier')},
-                                                  {'type': 'silhouette', 't0': tb(2) - 2 * F1, 't1': 9, 'mask_dir': os.path.join(P, 'mask_gondolier')}]))
-T.trans('glitch', 3, 3)
-T.sound(tb(30), 'boom', gain=-10, dur=0.9, f0=70, f1=40); T.sound(tb(32) - 2 / 60, 'click', gain=-8, f=3400)
-T.until_beat(34, hero('v_clone', 32, 34, cache_offset=110, punch=False, fx=[{'type': 'bleach', 't0': 0.0, 't1': 2 * F1, 'tint': (0.86, 0.97, 1.0)},
-                                                                             {'type': 'clone', 'offsets': [-80, 90], 'appear': [tb(0.5), tb(1)],
-                                                                              'mask_dir': os.path.join(P, 'mask_clone'), 't0': 0, 't1': 9}]))
+T.until_beat(28.5, hero('v_bow', 26, 28.5, cache_offset=vcard['cache_offset'] + vcard['f1'] - vcard['f0'], zoom=[[0, 1.0], [tb(2.5), 1.06, 'linear']]))
+T.sound(tb(26) - 0.1, 'whoosh', dur=0.25, gain=-12, pan_from=0, pan_to=0, peak_pos=0.6)
+T.until_beat(30, hero('v_campanile', 28.5, 30, cache_offset=4))
+TR('pip', 10, 7, s0=0.34, cx=0.70, cy=0.38)         # campanile pops in as a framed picture, then takes the frame
+T.until_beat(32, hero('v_gondolier', 30, 32, fx=[{'type': 'roto_text', 'text': 'GONDOLA', 'size': 520, 'x': 960, 'y': 520, 't0': 0.10, 't1': 9,
+                                                   'matte_dir': os.path.join(P, 'mask_gondolier')}]))
+TR('push', 6, 8, axis='y', dir=1)                  # tilt down from the bell tower to the gondolier
+T.sound(tb(30), 'boom', gain=-10, dur=0.9, f0=70, f1=40)
+T.until_beat(34, hero('v_clone', 32, 34, cache_offset=110, punch=False,
+                      fx=[{'type': 'clone', 'offsets': [-80, 90], 'appear': [tb(0.5), tb(1)], 'mask_dir': os.path.join(P, 'mask_clone'), 't0': 0, 't1': 9}]))
+TR('zoom', 7, 9, z=0.6, cb=(0.47 * W, 0.44 * H))  # dive into the canal's vanishing point
 T.sound(tb(32.5), 'click', gain=-8, f=2600); T.sound(tb(33), 'click', gain=-8, f=3100)
 T.until_beat(36, hero('v_bridges', 34, 36, zoom=[[0, 1.0], [tb(2), 1.06, 'linear']], fx=[{'type': 'red_inset', 't0': 0.0, 't1': tb(1), 'scale': 0.72}]))
-T.trans('whip', 4, 4, dir=1)
-T.sound(tb(34) - 0.03, 'whoosh', dur=0.22, gain=-11, pan_from=-0.6, pan_to=0.6, peak_pos=0.5); T.sound(tb(35), 'impact', gain=-12, bright=0.4)
+TR('whip', 6, 6, dir=1)
+T.sound(tb(35), 'impact', gain=-12, bright=0.4)
 T.until_beat(38, hero('v_arcade', 36, 38, zoom=[[0, 1.0], [tb(2), 1.07, 'linear']],
-                      fx=[{'type': 'white', 't0': 0.0, 't1': F1},
-                          {'type': 'text', 'text': 'SAN MARCO', 'size': 290, 'x': 960, 'y': 560, 'mode': 'exclusion', 't0': 0.03, 't1': 9,
+                      fx=[{'type': 'text', 'text': 'SAN MARCO', 'size': 290, 'x': 960, 'y': 560, 'mode': 'exclusion', 't0': 0.14, 't1': 9,
                            'tracking': 0, 'tracking_to': 26, 'rise': 50}]))
+TR('redbar', 7, 7, dir=-1)
 T.until_beat(40, hero('v_salute', 38, 40, zoom=[[0, 1.0], [tb(2), 1.05, 'linear']],
-                      fx=[{'type': 'redblock', 't0': 0.0, 't1': 4 * F1, 'x0': 0.0, 'x1': 0.42, 'slide': -0.06},
-                          {'type': 'label', 'text': 'SANTA MARIA DELLA SALUTE', 'sub': '21.05.2026', 'idx': '02', 't0': 0.12, 't1': 9}]))
-T.sound(tb(38), 'click', gain=-9, f=2300)
-# ------------------------------------------------------------------ BUILDUP (b40 - b48): acceleration with graphic hits
-T.until_beat(41, hero('v_taxi', 40, 41, fx=[{'type': 'bw_invert', 't0': 0.0, 't1': 2 * F1},
-                                            {'type': 'hud', 'track': 'taxi2', 'label': 'TRK_02  TAXI', 't0': 0.0, 't1': 9}]))
+                      fx=[{'type': 'label', 'text': 'SANTA MARIA DELLA SALUTE', 'sub': '21.05.2026', 'idx': '02', 't0': 0.2, 't1': 9}]))
+TR('push', 6, 8, axis='y', dir=-1)                 # tilt up the facade
+# ------------------------------------------------------------------ BUILDUP (b40 - b48): accelerating transitions
+T.until_beat(41, hero('v_taxi', 40, 41, fx=[{'type': 'hud', 'track': 'taxi2', 'label': 'TRK_02  TAXI', 't0': 0.0, 't1': 9}]))
+TR('whip', 5, 5, dir=-1)
 T.tracks['taxi2'] = os.path.join(P, 'track_taxi2.json')
-T.sound(tb(40), 'click', gain=-8, f=3300); T.sound(tb(40) + 0.12, 'chatter', dur=0.2, gain=-13)
-T.until_beat(43, dict(type='vsplit', panels=[{'shot': 'v_doge', 'enter': 0.0, 'from': 'none'}, {'shot': 'v_lamp', 'enter': tb(0.5), 'from': 'top'},
-                                             {'shot': 'v_gondolas', 'enter': tb(1.0), 'from': 'bottom'}], expand=(1, tb(1.6)), expand_dur=0.14,
-                      fx=[{'type': 'red', 't0': 0.0, 't1': F1}]))
+T.sound(tb(40) + 0.12, 'chatter', dur=0.2, gain=-13)
+T.until_beat(43, dict(type='vsplit', panels=[{'shot': 'v_doge', 'enter': 0.0, 'from': 'none', 'dx': -640}, {'shot': 'v_lamp', 'enter': tb(0.5), 'from': 'top'},
+                                             {'shot': 'v_gondolas', 'enter': tb(1.0), 'from': 'bottom'}], expand=(1, tb(1.6)), expand_dur=0.14))
+TR('push', 5, 5, dir=1)
 for k, kk in enumerate([41.5, 42]):
     T.sound(tb(kk), 'whoosh', dur=0.18, gain=-14, pan_from=0, pan_to=0, peak_pos=0.6, seed=30 + k)
 T.until_beat(44, hero('v_narrow', 43, 44, zoom=[[0, 1.0], [tb(1), 1.08, 'linear']]))
-T.trans('glitch', 2, 2)
+TR('zoom', 6, 7, z=0.55, cb=(0.62 * W, 0.50 * H))
 T.until_beat(46, seg_shot('v_motorboat', fx=[{'type': 'shutter', 't0': 0.0, 't1': 9, 'hold': tb(0.25)}]))
-T.trans('flash', 3, 3)
+TR('flash', 3, 5)
 for k in range(8):
     T.sound(tb(44 + 0.25 * k), 'shutter', gain=-10, seed=70 + k)
 T.add(T.cursor, fb(48) - 2, hero('v_bowsalute', 46, 48, fx=[{'type': 'overexpose', 't0': tb(1.0), 't1': tb(2) - 2 / 60, 'shape': 'up', 'amount': 1.0}]))
-T.trans('whip', 4, 5, dir=-1)
-T.frames(2, dict(type='card', card='black', fx=[{'type': 'black'}]))
+TR('whip', 5, 5, dir=1)
+T.frames(2, dict(type='card', card='wine'))        # two-frame dark-red breath (audio gap) before the drop
 # ------------------------------------------------------------------ DROP: ROMA card (b48)
 T.until_beat(49.5, dict(type='card', card='roma', text='ROMA', size=600, halation=0.12))
 T.sound(tb(48), 'boom', gain=0, dur=1.8); T.sound(tb(48), 'impact', gain=0, dur=1.5)
 
 # ------------------------------------------------------------------ ROMA + CLIMAX (b49.5 - b80)
 if 'build' in rome:
-    rome['build'](T, fb, tb, seg_shot, hero, kicks, P)
+    rome['build'](T, fb, tb, seg_shot, hero, kicks, P, TR, KICK)
 else:
-    # rough placeholders (structure only): hero shots with transitions, then accelerating climax
-    plan = [('r5', 51.5, None), ('r1', 53.5, 'zoom'), ('r6', 55, 'whip'), ('r2', 57, 'redwipe'), ('r7', 59, 'lb'), ('r3', 60, 'glitch'),
-            ('r8', 61, 'whip'), ('r4', 63, 'flash'), ('r10', 64, 'zoom'), ('r11', 66, 'whip'), ('r12', 67, 'whip'), ('r9', 68, 'glitch'),
-            ('r1', 69, 'whip'), ('r2', 70, 'whip'), ('r3', 70.5, None), ('r4', 71, None), ('r5', 71.5, None), ('r6', 72, None),
-            ('r7', 73, 'zoom'), ('r8', 74, 'whip'), ('r10', 75, 'whip'), ('r11', 76, 'flash'), ('r12', 77, 'whip'), ('r9', 78, 'glitch'),
-            ('r1', 79, 'whip'), ('r2', 80, 'zoom')]
+    # rough placeholders (structure only): hero shots, then an accelerating climax. Each entry: (shot, end beat, transition in)
+    plan = [('r5', 51.5, None), ('r1', 53.5, ('zoom', 7, 8, {})), ('r6', 55, ('push', 6, 7, {'dir': 1})), ('r2', 57, ('redbar', 7, 7, {'dir': 1})),
+            ('r7', 59, ('slice', 6, 12, {})), ('r3', 60, ('whip', 5, 5, {'dir': -1})), ('r8', 61, ('push', 5, 6, {'axis': 'y', 'dir': -1})),
+            ('r4', 63, ('pip', 9, 7, {})), ('r10', 64, ('whip', 5, 5, {'dir': 1})), ('r11', 66, ('zoom', 6, 8, {})),
+            ('r12', 67, ('doors', 4, 8, {})), ('r9', 68, ('whip', 4, 5, {'dir': -1})),
+            ('r1', 69, ('push', 4, 5, {'dir': 1})), ('r2', 70, ('whip', 4, 4, {'dir': -1})), ('r3', 70.5, None), ('r4', 71, None), ('r5', 71.5, None),
+            ('r6', 72, None), ('r7', 73, ('zoom', 5, 6, {})), ('r8', 74, ('whip', 4, 4, {'dir': 1})), ('r10', 75, ('slice', 4, 9, {})),
+            ('r11', 76, ('flash', 3, 4, {})), ('r12', 77, ('whip', 4, 4, {'dir': -1})), ('r9', 78, ('push', 4, 5, {'axis': 'y', 'dir': 1})),
+            ('r1', 79, ('whip', 4, 4, {'dir': 1})), ('r2', 80, ('zoom', 5, 6, {}))]
     k = 49.5
-    for n_, (sid, k2, tr) in enumerate(plan):
+    for n_, (sid, k2, tr_) in enumerate(plan):
         extra = [{'type': 'red_inset', 't0': 0.0, 't1': tb(1), 'scale': 0.70}] if n_ == 0 else []   # ROMA card -> inset on red -> full
+        if tr_ is None and n_ > 0:
+            extra.append(KICK(0.0, amp=9))
         T.until_beat(k2, hero(sid, k, k2, fx=extra))
-        if tr:
-            T.trans(tr, 6, 6, dir=1 if int(k2) % 2 else -1)
+        if tr_:
+            TR(tr_[0], tr_[1], tr_[2], **tr_[3])
         k = k2
 # ------------------------------------------------------------------ FINAL HIT: full red, then end card
 T.frames(6, dict(type='card', card='red', halation=0.0))

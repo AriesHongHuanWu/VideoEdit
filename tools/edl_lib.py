@@ -94,6 +94,34 @@ class Timeline:
             fb_.append(dict(type='glitch', t0=0.0, t1=i, strength=0.8))
         return kind
 
+    def tr(self, kind, n_out=6, n_in=6, **kw):
+        """Complete 2D transition straddling the cut between the last two segments (see trans2d.py).
+        A keeps playing n_in frames past its end, B is pre-rolled n_out frames so both move through it."""
+        A, B = self.segs[-2], self.segs[-1]
+        nA = A['f1'] - A['f0']; nB = B['f1'] - B['f0']
+        assert n_out <= nA and n_in <= nB, ('transition longer than a neighbour', A.get('shot'), B.get('shot'))
+        prev_in = A.get('tr', {}).get('n_in', 0) if A.get('tr') else 0
+        assert prev_in + n_out <= nA, ('overlapping transitions on', A.get('shot'))
+        B['tr'] = dict(kind=kind, n_out=n_out, n_in=n_in, kw=kw)
+        def ext(seg, extra):
+            n = seg['f1'] - seg['f0']
+            if seg['type'] in ('shot', 'split') and 'shot' in seg:
+                self._need(seg['shot'], seg.get('cache_offset', 0) + n + extra + 2)
+            if seg['type'] == 'stutter':
+                for k in ('A', 'B'):
+                    self._need(seg[k]['shot'], seg[k].get('cache_offset', 0) + n + extra + 2)
+            if seg['type'] == 'vsplit':
+                for p in seg['panels']:
+                    self._need(p['shot'], p.get('offset', 0) + n + extra + 2)
+            for fx in seg.get('fx', []):
+                if fx['type'] == 'pip':
+                    self._need(fx['shot'], fx.get('offset', 0) + n + extra + 2)
+        ext(A, n_in)
+        if B['type'] in ('shot', 'split') and 'shot' in B:
+            B['cache_offset'] = B.get('cache_offset', 0) + n_out
+        ext(B, 0)
+        return kind
+
     def trans3d(self, kind='cube', n=10, direction=1, samples=5):
         """3D transition straddling the cut (n frames each side). Outgoing shot gets n extra cached frames,
         incoming shot is pre-rolled by n frames so both keep moving through the transition."""

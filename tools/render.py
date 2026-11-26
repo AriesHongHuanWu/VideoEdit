@@ -8,6 +8,7 @@ import numpy as np
 import cv2
 sys.path.insert(0, os.path.dirname(__file__))
 import engine as E
+import trans2d as T2
 
 W, H, FPS = E.W, E.H, E.FPS
 
@@ -97,6 +98,14 @@ def shot_frame(seg, cache, tl, fi, tracks):
             u = (tl - fx['t0']) / (fx['t1'] - fx['t0'])
             if 0 <= u <= 1:
                 z *= 1 + (fx.get('z1', 1.4) - 1) * E.ease_in_expo(u)
+        if fx['type'] == 'kick':   # impact camera shake: decaying oscillation after each hit (Camera Motion)
+            for tp in fx['times']:
+                d_ = tl - tp
+                if 0 <= d_ < 0.6:
+                    env = fx.get('amp', 12.0) * math.exp(-d_ / fx.get('decay', 0.09))
+                    w_ = 2 * math.pi * fx.get('freq', 11.0) * d_
+                    dx += env * math.sin(w_); dy += 0.7 * env * math.sin(w_ * 1.13 + 1.3); rot += 0.02 * env * math.sin(w_ * 0.9 + 0.4)
+                    z *= 1 + 2.4 * env / W
         if fx['type'] == 'whip':   # positional whip offset with motion blur (in or out)
             u = (tl - fx['t0']) / (fx['t1'] - fx['t0'])
             if 0 <= u <= 1:
@@ -319,8 +328,8 @@ def shutter(img, fx, t, base_fn, t0):
     k = int(t / hold); u = t - k * hold
     still_t = t0 + k * hold
     frozen = base_fn(still_t)
-    if u < 1.0 / FPS:
-        return E.solid(E.BLACK) * 0.0 + E.white_mix(frozen, 0.0) * 0.08
+    if u < 1.0 / FPS:                         # shutter blink: a camera-flash pop (no black frames)
+        return E.white_mix(frozen, 0.72)
     s = 1.0 + 0.02 * (k % 2)
     if s != 1.0:
         M = cv2.getRotationMatrix2D((W / 2, H / 2), 0, s)
@@ -350,6 +359,8 @@ def card(seg, tl, ctx):
         return bg
     if kind == 'red':
         return E.solid(E.RED)
+    if kind == 'wine':
+        return E.solid(E.WINE)
     if kind == 'end':
         k = E.ease_in_out_cubic(min(1.0, tl / 0.28))          # full red from the final hit settles into wine
         bg = E.solid(E.RED * (1 - k) + E.WINE * k)
@@ -419,6 +430,8 @@ def vsplit(seg, tl, fi, cache, ctx):
             x = int(round(i * cw))
             if exp and tl >= exp[1] + seg.get('expand_dur', 0.16):
                 break
+            if tl < panels[i].get('enter', 0.0):     # a divider appears only once its panel has arrived
+                continue
             out[:, max(0, x - gap // 2):x + gap // 2] = E.RED
     return out
 
@@ -593,6 +606,20 @@ def cutout_transition(edl, A, B, gi, cache, ctx, img):
         return img * (1 - mm[..., None]) + b_img * mm[..., None]
     return img
 
+def track_point(seg, name, gi, ctx):
+    """Output-space position of a tracked point of `seg` at global frame gi (follows the shot's zoom / centre)."""
+    tr = ctx['tracks'].get(name)
+    if tr is None:
+        return None
+    fi = gi - seg['f0']
+    k = min(len(tr['pts']) - 1, max(0, fi + seg.get('cache_offset', 0)))
+    p = tr['pts'][k]
+    if p is None:
+        return None
+    t = fi / FPS
+    z = kf(seg.get('zoom'), t, 1.0); c = kf(seg.get('center'), t, [0.5, 0.5])
+    return ((p[0] - c[0]) * W * z + W / 2, (p[1] - c[1]) * H * z + H / 2)
+
 def render_frame(edl, gi, cache, ctx, grain):
     segs = edl['segments']
     idx = next((i for i, s in enumerate(segs) if s['f0'] <= gi < s['f1']), None)
@@ -600,8 +627,27 @@ def render_frame(edl, gi, cache, ctx, grain):
         return E.solid(E.BLACK)
     seg = segs[idx]; fi = gi - seg['f0']; tl = fi / FPS
     img = None
+    # 2D transitions straddle the cut: [B.f0 - n_out, B.f0 + n_in)
+    for j in (idx, idx + 1):
+        if 0 < j < len(segs) and segs[j].get('tr'):
+            Bs, As = segs[j], segs[j - 1]; tr = Bs['tr']; no, ni = tr['n_out'], tr['n_in']
+            if Bs['f0'] - no <= gi < Bs['f0'] + ni:
+                N = no + ni; u = (gi - (Bs['f0'] - no) + 0.5) / N
+                a_img = compose(edl, As, gi, cache, ctx)
+                b_img = compose(edl, Bs, gi, cache, ctx)
+                kw = dict(tr.get('kw', {}))
+                for key, sg in (('ca_track', As), ('cb_track', Bs)):
+                    if key in kw:
+                        p = track_point(sg, kw.pop(key), gi, ctx)
+                        if p is not None:
+                            kw[key[:2]] = p
+                img = T2.apply(tr['kind'], a_img, b_img, u, no / N, 1.0 / N, **kw)
+                seg = Bs if gi >= Bs['f0'] else As
+                break
     # 3D transitions straddle the cut: [B.f0 - n, B.f0 + n)
     for j in (idx, idx + 1):
+        if img is not None:
+            break
         if 0 < j < len(segs) and segs[j].get('t3d'):
             Bs, As = segs[j], segs[j - 1]; t3 = Bs['t3d']; n = t3.get('n', 10)
             if Bs['f0'] - n <= gi < Bs['f0'] + n:
