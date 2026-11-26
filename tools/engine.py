@@ -519,3 +519,47 @@ def light_scatter(img, amount=0.6, length=0.30, rays=((0, 1.0, 1.0), (90, 0.4, 0
     acc = acc * gain * np.array(tint, np.float32)
     acc = cv2.resize(acc, (w, h), interpolation=cv2.INTER_LINEAR)
     return np.clip(screen(img, np.clip(acc * amount, 0, 1)), 0, 1).astype(np.float32)
+
+# ----------------------------------------------------------------- transitions / hits
+def glitch(img, strength=1.0, seed=0):
+    """CRT / chromatic-aberration hit: RGB split, a few displaced horizontal slices, scanlines."""
+    rng = random.Random(seed)
+    out = chroma_split(img, int(6 + 10 * strength))
+    h = img.shape[0]
+    for _ in range(int(3 + 4 * strength)):
+        y0 = rng.randint(0, h - 40); hh = rng.randint(8, 60); dx = rng.randint(-40, 40)
+        out[y0:y0 + hh] = np.roll(out[y0:y0 + hh], int(dx * strength), axis=1)
+    return scanlines(out, 0.10 + 0.08 * strength, 3)
+
+def red_panel(img, x0, x1, label=None, label_alpha=1.0, edge=True, label_size=150):
+    """Solid editorial-red panel covering columns [x0, x1) with a crisp white leading edge."""
+    a, b = int(max(0, x0)), int(min(img.shape[1], x1))
+    if b > a:
+        img[:, a:b] = RED
+        if edge:
+            for e in (a, b - 3):
+                if 0 < e < img.shape[1] - 3 and (e == a and a > 0 or e == b - 3 and b < img.shape[1]):
+                    img[:, e:e + 3] = WHITE
+        if label:
+            cx = (a + b) // 2
+            draw_text(img, label, 'anton', label_size, WHITE, cx, H // 2 + (18 if label_size > 400 else 0), 'mm', 6 if label_size > 400 else 3, alpha=label_alpha)
+    return img
+
+_crt_cache = {}
+def crt_background(t, w=W, h=H, tint=(0.05, 0.035, 0.035)):
+    """Dark CRT / waveform texture: scanlines, faint animated oscilloscope trace, vignette, flicker."""
+    key = (w, h)
+    if key not in _crt_cache:
+        base = np.empty((h, w, 3), np.float32); base[:] = tint
+        lines = np.ones(h, np.float32); lines[::3] = 0.55
+        base *= lines[:, None, None]
+        _crt_cache[key] = base * _vignette_mask(w, h, 0.55)[..., None]
+    img = _crt_cache[key].copy()
+    xs = np.arange(w, dtype=np.float32)
+    for k, (amp, freq, ph, a) in enumerate([(60, 3.2, 1.7, 0.22), (28, 7.5, -2.3, 0.12)]):
+        y = (h / 2 + amp * np.sin(xs / w * freq * 2 * math.pi + t * ph * 4) * np.sin(xs / w * math.pi)).astype(np.int32)
+        for d in (-1, 0, 1):
+            yy = np.clip(y + d, 0, h - 1)
+            img[yy, xs.astype(np.int32)] += np.array([0.55, 0.06, 0.04], np.float32) * a * (1 - 0.4 * abs(d))
+    img *= 0.96 + 0.04 * math.sin(t * 50)
+    return np.clip(img, 0, 1)

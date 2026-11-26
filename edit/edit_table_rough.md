@@ -1,71 +1,55 @@
 | Time (s) | Beat | Frames | Shot (file @ source s) | Graphics / effects | Sound |
 |---|---|---|---|---|---|
-|   0.00–  0.37 |   0.0 | 22 | DJI_0165 @ 0.7 | Flash Pop In, HUD tracking, camera move zoom 1.00->1.04 | boom, impact, click, chatter |
-|   0.37–  0.43 |   1.0 | 4 |  | full red frame | click |
-|   0.43–  0.55 |   1.2 | 7 | DJI_0062 @ 4.3 | red/white duotone flash | shutter |
-|   0.55–  0.73 |   1.5 | 11 | DJI_0211 @ 3.5 | B&W Inverted | shutter |
-|   0.73–  0.78 |   2.0 | 3 |  | white flash, white | whoosh |
-|   0.78–  1.08 |   2.2 | 18 | DJI_0154 @ 9.0 | Zoom Out |  |
-|   1.08–  1.27 |   3.0 | 11 | DJI_0074 @ 5.4 | red letterbox bounce | whoosh |
-|   1.27–  1.45 |   3.5 | 11 | DJI_0049 @ 12.0 | red inverted flash | shutter |
+|   0.00–  0.73 |   0.0 | 44 | DJI_0165 @ 0.7 | light_scatter, Flash Pop In, HUD tracking, redpanel, camera move zoom 1.00->1.05 | boom, impact, click, chatter, whoosh |
+|   0.73–  1.08 |   2.0 | 21 | DJI_0062 @ 4.3 | redpanel, push_out, camera move zoom 1.00->1.10 | whoosh |
+|   1.08–  1.45 |   3.0 | 22 | DJI_0061 @ 3.0 | Zoom Out, camera move zoom 1.00->1.06 |  |
 |   1.45–  5.82 |   4.0 | 262 |  | 'postcards from ITALIA' intro: 6 strips -> band -> decode -> band opens | whoosh, whoosh, chatter, boom, click |
-|   5.82–  6.55 |  16.0 | 44 | DJI_0049 @ 11.2 | Flash Pop In, full-width red headline 'MILANO', camera move zoom 1.00->1.07 | impact, whoosh |
-|   6.55–  6.92 |  18.0 | 22 | DJI_0062 @ 4.3 | camera move zoom 1.00->1.12 |  |
-|   6.92–  7.45 |  19.0 | 32 | DJI_0061 @ 3.0 | camera move zoom 1.02->1.08 |  |
-|   7.45–  7.63 |  20.5 | 11 | DJI_0048 @ 9.6 | B&W | shutter |
-|   7.63–  8.37 |  21.0 | 44 | DJI_0060 @ 0.5 | red letterbox bounce | whoosh |
-|   8.37–  8.73 |  23.0 | 22 | DJI_0069 @ 20.2 | whip pan in | whoosh |
-|   8.73–  9.45 |  24.0 | 43 | DJI_0074 @ 5.6 | red split card 'VENEZIA' | impact |
-|   9.45– 10.00 |  26.0 | 33 | DJI_0165 @ 0.2 | HUD tracking | click, chatter |
-|  10.00– 10.18 |  27.5 | 11 | DJI_0113 @ 0.6 | red/white duotone flash | shutter |
-|  10.18– 10.92 |  28.0 | 44 | DJI_0169 @ 0.6 | Flash Effect, camera move zoom 1.00->1.05 |  |
-|  10.92– 11.27 |  30.0 | 21 | DJI_0077 @ 1.6 |  |  |
-|  11.27– 11.63 |  31.0 | 22 | DJI_0084 @ 9.4 |  |  |
-|  11.63– 12.37 |  32.0 | 44 | DJI_0139 @ 6.0 | Rotoscope text 'VENEZIA' | boom |
-|  12.37– 13.08 |  34.0 | 43 | DJI_0154 @ 10.8 | Clone Effect | click, click |
-|  13.08– 13.82 |  36.0 | 44 | DJI_0177 @ 5.6 | red-frame inset -> pop back | whoosh, impact |
-|  13.82– 14.55 |  38.0 | 44 | DJI_0111 @ 6.0 | Text Exclusion 'SAN MARCO', camera move zoom 1.00->1.06 |  |
+|   5.82–  6.55 |  16.0 | 44 | DJI_0049 @ 11.2 | soft_glow, Flash Pop In, full-width red headline 'MILANO', Flash Effect, camera move zoom 1.00->1.07 | impact, whoosh |
+|   6.55–  7.08 |  18.0 | 32 | DJI_0048 @ 9.6 | light_scatter, B&W, punch, Flash Pop In, push_out, camera move zoom 1.00->1.08 | shutter, whoosh |
+|   7.08–  7.63 |  19.5 | 33 | DJI_0041 @ 1.0 | Zoom Out, camera move zoom 1.02->1.09 |  |
+|   7.63–  8.37 |  21.0 | 44 | DJI_0060 @ 0.5 | red letterbox bounce, whip pan out | whoosh |
+|   8.37–  8.73 |  23.0 | 22 | DJI_0069 @ 20.2 | soft_glow, whip pan in, redpanel | whoosh, whoosh |
+|   8.73–  9.45 |  24.0 | 43 | DJI_0169 @ 0.6 | red split card 'VENEZIA' | impact, whoosh |
+|   9.45– 10.55 |  26.0 | 66 | DJI_0169 @ 1.3 | light_scatter, punch, glitch, camera move zoom 1.00->1.06 |  |
+|  10.55– 10.92 |  29.0 | 22 | DJI_0113 @ 0.6 | red/white duotone flash, glitch, whip pan out | click, whoosh |
+|  10.92– 11.63 |  30.0 | 43 | DJI_0139 @ 6.0 | Rotoscope text 'GONDOLA', whip pan in, Flash Effect | boom |
+|  11.63– 12.37 |  32.0 | 44 | DJI_0154 @ 10.8 | Clone Effect, Flash Pop In | click, click |
+|  12.37– 13.08 |  34.0 | 43 | DJI_0177 @ 5.6 | red-frame inset -> pop back, punch, push_out, camera move zoom 1.00->1.06 | whoosh, impact, whoosh |
+|  13.08– 13.82 |  36.0 | 44 | DJI_0111 @ 6.0 | Text Exclusion 'SAN MARCO', punch, Zoom Out, lb_close, camera move zoom 1.00->1.07 | whoosh |
+|  13.82– 14.55 |  38.0 | 44 | DJI_0145 @ 2.6 | soft_glow, lb_open, whip pan out, camera move zoom 1.00->1.05 |  |
 |  14.55– 14.92 |  40.0 | 22 | DJI_0078 @ 27.6 | whip pan in | whoosh |
-|  14.92– 15.27 |  41.0 | 21 | DJI_0145 @ 2.6 |  |  |
-|  15.27– 15.45 |  42.0 | 11 | DJI_0118 @ 4.2 |  |  |
-|  15.45– 15.63 |  42.5 | 11 | DJI_0119 @ 1.2 |  |  |
-|  15.63– 15.82 |  43.0 | 11 | DJI_0099 @ 9.2 |  |  |
-|  15.82– 16.00 |  43.5 | 11 | DJI_0182 @ 6.2 |  |  |
-|  16.00– 16.73 |  44.0 | 44 | DJI_0159 @ 0.0 | Shutter Clip | shutter, shutter, shutter, shutter, shutter, shutter, shutter, shutter |
-|  16.73– 17.42 |  46.0 | 41 | DJI_0171 @ 8.0 | Flash Effect |  |
+|  14.92– 15.63 |  41.0 | 43 |  | glitch | whoosh, whoosh |
+|  15.63– 16.00 |  43.0 | 22 | DJI_0182 @ 6.2 | glitch, camera move zoom 1.00->1.08 |  |
+|  16.00– 16.73 |  44.0 | 44 | DJI_0159 @ 0.0 | light_scatter, Shutter Clip, whip pan out | shutter, shutter, shutter, shutter, shutter, shutter, shutter, shutter |
+|  16.73– 17.42 |  46.0 | 41 | DJI_0171 @ 8.0 | soft_glow, Flash Effect, whip pan in |  |
 |  17.42– 17.45 |  47.9 | 2 |  | black, black | riser |
 |  17.45– 18.00 |  48.0 | 33 |  | red card 'ROMA' | boom, impact |
-|  18.00– 18.55 |  49.5 | 33 | DJI_0093 @ 40.5 |  |  |
-|  18.55– 19.27 |  51.0 | 43 | DJI_0136 @ 11.0 |  |  |
-|  19.27– 19.63 |  53.0 | 22 | DJI_0094 @ 1.7 |  |  |
-|  19.63– 20.00 |  54.0 | 22 | DJI_0143 @ 2.5 |  |  |
-|  20.00– 20.73 |  55.0 | 44 | DJI_0164 @ 21.0 |  |  |
-|  20.73– 21.08 |  57.0 | 21 | DJI_0098 @ 4.5 |  |  |
-|  21.08– 21.45 |  58.0 | 22 | DJI_0189 @ 0.0 |  |  |
-|  21.45– 22.18 |  59.0 | 44 | DJI_0126 @ 9.5 |  |  |
-|  22.18– 22.55 |  61.0 | 22 | DJI_0199 @ 0.0 |  |  |
-|  22.55– 23.08 |  62.0 | 32 | DJI_0075 @ 26.0 |  |  |
-|  23.08– 23.45 |  63.5 | 22 | DJI_0180 @ 0.5 |  |  |
-|  23.45– 23.82 |  64.5 | 22 | DJI_0211 @ 3.5 |  |  |
-|  23.82– 24.00 |  65.5 | 11 | DJI_0136 @ 11.0 |  |  |
-|  24.00– 24.18 |  66.0 | 11 | DJI_0143 @ 2.5 |  |  |
-|  24.18– 24.37 |  66.5 | 11 | DJI_0098 @ 4.5 |  |  |
-|  24.37– 24.55 |  67.0 | 11 | DJI_0126 @ 9.5 |  |  |
-|  24.55– 24.73 |  67.5 | 11 | DJI_0093 @ 40.5 |  |  |
-|  24.73– 24.92 |  68.0 | 11 | DJI_0094 @ 1.7 |  |  |
-|  24.92– 25.00 |  68.5 | 5 | DJI_0164 @ 21.0 |  |  |
-|  25.00– 25.08 |  68.8 | 5 | DJI_0189 @ 0.0 |  |  |
-|  25.08– 25.18 |  69.0 | 6 | DJI_0199 @ 0.0 |  |  |
-|  25.18– 25.27 |  69.3 | 5 | DJI_0075 @ 26.0 |  |  |
-|  25.27– 25.45 |  69.5 | 11 | DJI_0180 @ 0.5 |  |  |
-|  25.45– 25.63 |  70.0 | 11 | DJI_0211 @ 3.5 |  |  |
-|  25.63– 26.00 |  70.5 | 22 | DJI_0136 @ 11.0 |  |  |
-|  26.00– 26.37 |  71.5 | 22 | DJI_0143 @ 2.5 |  |  |
-|  26.37– 26.73 |  72.5 | 22 | DJI_0098 @ 4.5 |  |  |
-|  26.73– 26.92 |  73.5 | 11 | DJI_0126 @ 9.5 |  |  |
-|  26.92– 27.08 |  74.0 | 10 | DJI_0093 @ 40.5 |  |  |
-|  27.08– 27.27 |  74.5 | 11 | DJI_0094 @ 1.7 |  |  |
-|  27.27– 29.08 |  75.0 | 109 | DJI_0136 @ 11.0 |  |  |
+|  18.00– 18.73 |  49.5 | 44 | DJI_0093 @ 40.5 | punch, push_out |  |
+|  18.73– 19.45 |  51.5 | 43 | DJI_0136 @ 11.0 | punch, Zoom Out, whip pan out |  |
+|  19.45– 20.00 |  53.5 | 33 | DJI_0094 @ 1.7 | whip pan in, redpanel |  |
+|  20.00– 20.73 |  55.0 | 44 | DJI_0143 @ 2.5 | punch, redpanel, lb_close |  |
+|  20.73– 21.45 |  57.0 | 43 | DJI_0164 @ 21.0 | lb_open, glitch |  |
+|  21.45– 21.82 |  59.0 | 22 | DJI_0098 @ 4.5 | glitch, whip pan out |  |
+|  21.82– 22.18 |  60.0 | 22 | DJI_0189 @ 0.0 | whip pan in, Flash Effect |  |
+|  22.18– 22.92 |  61.0 | 44 | DJI_0126 @ 9.5 | Flash Pop In, push_out |  |
+|  22.92– 23.27 |  63.0 | 21 | DJI_0199 @ 0.0 | Zoom Out, whip pan out |  |
+|  23.27– 24.00 |  64.0 | 44 | DJI_0075 @ 26.0 | whip pan in, whip pan out |  |
+|  24.00– 24.37 |  66.0 | 22 | DJI_0180 @ 0.5 | whip pan in, glitch |  |
+|  24.37– 24.73 |  67.0 | 22 | DJI_0211 @ 3.5 | glitch, whip pan out |  |
+|  24.73– 25.08 |  68.0 | 21 | DJI_0136 @ 11.0 | whip pan in, whip pan out |  |
+|  25.08– 25.45 |  69.0 | 22 | DJI_0143 @ 2.5 | whip pan in |  |
+|  25.45– 25.63 |  70.0 | 11 | DJI_0098 @ 4.5 |  |  |
+|  25.63– 25.82 |  70.5 | 11 | DJI_0126 @ 9.5 |  |  |
+|  25.82– 26.00 |  71.0 | 11 | DJI_0093 @ 40.5 |  |  |
+|  26.00– 26.18 |  71.5 | 11 | DJI_0094 @ 1.7 | push_out |  |
+|  26.18– 26.55 |  72.0 | 22 | DJI_0164 @ 21.0 | Zoom Out, whip pan out |  |
+|  26.55– 26.92 |  73.0 | 22 | DJI_0189 @ 0.0 | whip pan in, whip pan out |  |
+|  26.92– 27.27 |  74.0 | 21 | DJI_0199 @ 0.0 | whip pan in, Flash Effect |  |
+|  27.27– 27.63 |  75.0 | 22 | DJI_0075 @ 26.0 | Flash Pop In, whip pan out |  |
+|  27.63– 28.00 |  76.0 | 22 | DJI_0180 @ 0.5 | whip pan in, glitch |  |
+|  28.00– 28.37 |  77.0 | 22 | DJI_0211 @ 3.5 | glitch, whip pan out |  |
+|  28.37– 28.73 |  78.0 | 22 | DJI_0136 @ 11.0 | whip pan in, push_out |  |
+|  28.73– 29.08 |  79.0 | 21 | DJI_0143 @ 2.5 | Zoom Out |  |
 |  29.08– 29.18 |  80.0 | 6 |  | full red frame | boom, impact |
 |  29.18– 31.68 |  80.3 | 150 |  | end card (wine red + ITALIA) |  |
 

@@ -89,6 +89,14 @@ def shot_frame(seg, cache, tl, fi, tracks):
             u = (tl - fx['t0']) / (fx['t1'] - fx['t0'])
             if u <= 1:
                 z *= fx.get('z0', 1.5) + (1 - fx.get('z0', 1.5)) * E.ease_out_expo(max(0, u))
+        if fx['type'] == 'punch':  # 100% -> 105% snap on bass hits, eased back
+            for tp in fx['times']:
+                if tl >= tp:
+                    z *= 1 + fx.get('amount', 0.05) * math.exp(-(tl - tp) / fx.get('decay', 0.09))
+        if fx['type'] == 'push_out':   # zoom-through (outgoing half): accelerate into the frame
+            u = (tl - fx['t0']) / (fx['t1'] - fx['t0'])
+            if 0 <= u <= 1:
+                z *= 1 + (fx.get('z1', 1.4) - 1) * E.ease_in_expo(u)
         if fx['type'] == 'whip':   # positional whip offset with motion blur (in or out)
             u = (tl - fx['t0']) / (fx['t1'] - fx['t0'])
             if 0 <= u <= 1:
@@ -110,6 +118,10 @@ def shot_frame(seg, cache, tl, fi, tracks):
             u = (tl - fx['t0']) / (fx['t1'] - fx['t0'])
             if 0 <= u < 0.85:
                 img = E.radial_zoom_blur(img, strength=0.10 * (1 - u), n=9)
+        if fx['type'] == 'push_out':
+            u = (tl - fx['t0']) / (fx['t1'] - fx['t0'])
+            if 0.15 < u <= 1:
+                img = E.radial_zoom_blur(img, strength=0.12 * u, n=9)
     return img
 
 def apply_fx(img, seg, tl, fi, ctx, base_fn):
@@ -155,8 +167,11 @@ def apply_fx(img, seg, tl, fi, ctx, base_fn):
         elif typ == 'text' and t0 <= tl < t1:
             a = min(1.0, (tl - t0) / max(1e-6, fx.get('fade', 0.06)))
             mode = fx.get('mode', 'normal')
+            u = (tl - t0) / max(1e-6, fx.get('anim', seg['dur']) )
+            trk = int(fx.get('tracking', 0) + (fx.get('tracking_to', fx.get('tracking', 0)) - fx.get('tracking', 0)) * E.ease_out_cubic(min(1.0, u)))
+            dy = int((1 - E.ease_out_expo(min(1.0, (tl - t0) / 0.2))) * fx.get('rise', 0))
             E.draw_text(img, fx['text'], fx.get('font', 'anton'), fx['size'], np.array(fx.get('color', [1, 1, 1]), np.float32),
-                        fx['x'], fx['y'], fx.get('anchor', 'mm'), fx.get('tracking', 0), a, mode=mode)
+                        fx['x'], fx['y'] + dy, fx.get('anchor', 'mm'), trk, a, mode=mode)
         elif typ == 'glass' and t0 <= tl < t1:
             u = E.clamp01((tl - t0) / 0.15)
             img = E.glass_text(img, fx['text'], size=fx.get('size', 520), cx=fx.get('cx', W // 2), cy=fx.get('cy', H // 2),
@@ -169,6 +184,23 @@ def apply_fx(img, seg, tl, fi, ctx, base_fn):
             img = shutter(img, fx, tl - t0, base_fn, t0)
         elif typ == 'clone' and t0 <= tl < t1:
             img = clone(img, fx, tl, fi, ctx, seg)
+        elif typ == 'redpanel' and t0 <= tl < t1:
+            u = E.ease_in_out_cubic((tl - t0) / max(1e-6, t1 - t0))
+            if fx.get('mode', 'cover') == 'cover':      # panel sweeps in and covers the outgoing shot
+                x1 = u * W * 1.02; x0 = x1 - W * 1.02
+            else:                                       # panel keeps travelling and reveals the incoming shot
+                x0 = u * W * 1.02; x1 = x0 + W * 1.02
+            if fx.get('dir', 1) < 0:
+                x0, x1 = W - x1, W - x0
+            img = E.red_panel(img, x0, x1, fx.get('label'), 1.0, label_size=fx.get('label_size', 150))
+        elif typ == 'lb_close' and t0 <= tl < t1 + 0.5:
+            u = E.ease_in_cubic(min(1.0, (tl - t0) / max(1e-6, t1 - t0)))
+            img = E.letterbox(img, u * (H / 2 + 2))
+        elif typ == 'lb_open' and t0 <= tl < t1:
+            u = (tl - t0) / max(1e-6, t1 - t0)
+            img = E.letterbox(img, (H / 2 + 2) * (1 - E.spring(u * 0.5, freq=1.6, damp=7.0)))
+        elif typ == 'glitch' and t0 <= tl < t1:
+            img = E.glitch(img, fx.get('strength', 1.0), seed=fi)
         elif typ == 'soft_glow' and t0 <= tl < t1:          # 柔光
             img = E.soft_glow(img, fx.get('amount', 0.55), fx.get('radius', 22), fx.get('thresh', 0.42), mist=fx.get('mist', 0.10))
         elif typ == 'light_scatter' and t0 <= tl < t1:      # 散光
@@ -195,10 +227,12 @@ def title_top(img, fx, t):
 def roto_text(img, fx, t, fi, ctx, seg):
     """Giant text behind a person: matte frames in fx['matte'] (per local frame, png alpha at 1920x1080)."""
     base = img.copy()
-    a = E.ease_out_cubic(min(1.0, t / 0.12))
+    a = E.ease_out_cubic(min(1.0, t / 0.14))
+    rise = E.ease_out_expo(min(1.0, t / 0.30))
     color = np.array(fx.get('color', [1, 1, 1]), np.float32)
-    size = fx.get('size', 600)
-    E.draw_text(img, fx['text'], 'anton', size, color, fx.get('x', W // 2), fx.get('y', H // 2) + int((1 - a) * 40), 'mm', fx.get('tracking', 0), a)
+    size = int(fx.get('size', 600) * (1.08 - 0.08 * rise))
+    trk = int(fx.get('tracking', 0) + fx.get('tracking_grow', 14) * min(1.0, t / max(0.3, seg['dur'])))
+    E.draw_text(img, fx['text'], 'anton', size, color, fx.get('x', W // 2), fx.get('y', H // 2) + int((1 - rise) * 140), 'mm', trk, a)
     mp = os.path.join(fx['matte_dir'], f'{fi + seg.get("cache_offset", 0) + fx.get("matte_offset", 0):05d}.png')
     if os.path.exists(mp):
         mt = cv2.imread(mp, cv2.IMREAD_GRAYSCALE).astype(np.float32) / 255.0
@@ -277,8 +311,11 @@ def card(seg, tl, ctx):
         E.draw_text(bg, seg.get('text', 'ROMA'), 'anton', size, E.WHITE, W // 2, H // 2 + 18, 'mm', seg.get('tracking', 6))
         if seg.get('sub'):
             E.draw_text(bg, seg['sub'], 'inter_med', 26, E.WHITE, W // 2, H // 2 + 330, 'mm', tracking=10)
+        bg = E.scanlines(bg, 0.07, 4)
+        if tl < 3 / FPS:
+            bg = E.glitch(bg, 1.0 - tl * 15, seed=int(tl * FPS) + 5)
         if tl < 2 / FPS:
-            bg = E.white_mix(bg, 0.7 if tl < 1 / FPS else 0.35)
+            bg = E.white_mix(bg, 0.6 if tl < 1 / FPS else 0.3)
         return bg
     if kind == 'red':
         return E.solid(E.RED)
@@ -300,18 +337,57 @@ def card(seg, tl, ctx):
     return E.solid(E.BLACK)
 
 def split_card(seg, tl, fi, cache, ctx):
-    """Red card: left inset image (shot playing), right white place name."""
+    """Red card: left inset image (shot playing), right white place name. Optional expand_out: the red-framed
+    inset snaps to full frame at the end (carries into the next shot)."""
     bg = E.solid(E.RED)
     shot_img = shot_frame(seg, cache, tl, fi, ctx['tracks'])
-    s = seg.get('inset_scale', 0.52)
+    s = seg.get('inset_scale', 0.52); cx = seg.get('inset_cx', 560)
     pop = 0.92 + 0.08 * E.spring(tl, freq=3.0, damp=8.0)
-    E.inset_on(bg, shot_img, s * pop, cx=seg.get('inset_cx', 560), cy=H / 2)
     a = E.ease_out_cubic(min(1.0, (tl - 0.04) / 0.12))
+    eo = seg.get('expand_out', 0)
+    if eo and tl > seg['dur'] - eo:
+        v = E.ease_in_out_cubic((tl - (seg['dur'] - eo)) / eo)
+        s = s + (1 - s) * v; cx = cx + (W / 2 - cx) * v; pop = 1.0; a *= (1 - v)
+    E.inset_on(bg, shot_img, s * pop, cx=cx, cy=H / 2)
     x = seg.get('text_x', 1110)
-    E.draw_text(bg, seg['text'], 'anton', seg.get('size', 150), E.WHITE, x + int((1 - a) * 60), H // 2 - 10, 'lm', 2, a)
-    if seg.get('sub'):
-        E.draw_text(bg, seg['sub'], 'inter_med', 24, E.WHITE, x + 4 + int((1 - a) * 60), H // 2 + 92, 'lt', 6, a)
+    if a > 0.01:
+        E.draw_text(bg, seg['text'], 'anton', seg.get('size', 150), E.WHITE, x + int((1 - a) * 60), H // 2 - 10, 'lm', 2, a)
+        if seg.get('sub'):
+            E.draw_text(bg, seg['sub'], 'inter_med', 24, E.WHITE, x + 4 + int((1 - a) * 60), H // 2 + 92, 'lt', 6, a)
     return bg
+
+def vsplit(seg, tl, fi, cache, ctx):
+    """Vertical split-screen juxtaposition: panels slide into columns on beat hits; optional expand to full."""
+    panels = seg['panels']; n = len(panels); cw = W / n; gap = seg.get('gap', 8)
+    first = panels[0]
+    base_src = cache.frame(first['shot'], first.get('offset', 0) + fi)
+    out = E.place(base_src, zoom=first.get('zoom', 1.0), cx=first.get('cx', 0.5)).copy()
+    exp = seg.get('expand')            # (panel index, t_start)
+    for i, p in enumerate(panels):
+        te = p.get('enter', 0.0)
+        if tl < te:
+            continue
+        u = E.ease_out_expo(min(1.0, (tl - te) / p.get('slide', 0.14)))
+        src = cache.frame(p['shot'], p.get('offset', 0) + fi)
+        img = E.place(src, zoom=p.get('zoom', 1.0), cx=p.get('cx', 0.5), cy=p.get('cy', 0.5))
+        x0 = int(round(i * cw)); x1 = int(round((i + 1) * cw))
+        if exp and exp[0] == i and tl >= exp[1]:
+            v = E.ease_in_out_cubic(min(1.0, (tl - exp[1]) / seg.get('expand_dur', 0.16)))
+            x0 = int(x0 * (1 - v)); x1 = int(x1 + (W - x1) * v)
+        sx0 = int(W / 2 - (x1 - x0) / 2 + p.get('dx', 0)); sx0 = max(0, min(W - (x1 - x0), sx0))
+        col = img[:, sx0:sx0 + (x1 - x0)]
+        dirn = {'top': -1, 'bottom': 1}.get(p.get('from', 'bottom'), 0)
+        yo = int((1 - u) * H * dirn)
+        ys0, ys1 = max(0, yo), min(H, H + yo)
+        if ys1 > ys0:
+            out[ys0:ys1, x0:x1] = col[ys0 - yo:ys1 - yo]
+    if seg.get('gaps', True):
+        for i in range(1, n):
+            x = int(round(i * cw))
+            if exp and tl >= exp[1] + seg.get('expand_dur', 0.16):
+                break
+            out[:, max(0, x - gap // 2):x + gap // 2] = E.RED
+    return out
 
 def intro(seg, tl, fi, cache, ctx):
     """'postcards from ITALIA' opening. Times are local to the segment.
@@ -321,8 +397,12 @@ def intro(seg, tl, fi, cache, ctx):
     n = len(strips); sw = W / n
     out = E.solid(E.BLACK)
     if tl < p2:
-        # vertical strips with staggered slide-in from the left; content keeps playing
-        row = np.zeros((H, W, 3), np.float32)
+        # vertical strips with staggered slide-in from the left over the base shot; content keeps playing
+        b = seg.get('base')
+        if b:
+            row = E.place(cache.frame(b['shot'], b.get('offset', 0) + fi), zoom=b.get('zoom', 1.0)).copy()
+        else:
+            row = np.zeros((H, W, 3), np.float32)
         for i, st in enumerate(strips):
             ti = tl - i * seg.get('stagger', 0.05)
             if ti < 0:
@@ -347,6 +427,7 @@ def intro(seg, tl, fi, cache, ctx):
             y0 = H // 2 - hb // 2
             out[y0:y0 + hb] = row[y0:y0 + hb]
     else:
+        out = E.crt_background(tl)
         # band behind the title: thin -> full, cycling shots each beat
         if tl >= p3:
             u = E.ease_in_out_cubic((tl - p3) / (seg['dur'] - p3))
@@ -395,6 +476,9 @@ def render_frame(edl, gi, cache, ctx, grain):
         img = apply_fx(img, seg, tl, fi, ctx, lambda tt: img)
     elif typ == 'split':
         img = split_card(seg, tl, fi, cache, ctx)
+        img = apply_fx(img, seg, tl, fi, ctx, lambda tt: img)
+    elif typ == 'vsplit':
+        img = vsplit(seg, tl, fi, cache, ctx)
         img = apply_fx(img, seg, tl, fi, ctx, lambda tt: img)
     elif typ == 'intro':
         img = intro(seg, tl, fi, cache, ctx)

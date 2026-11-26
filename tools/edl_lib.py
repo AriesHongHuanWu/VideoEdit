@@ -39,7 +39,12 @@ class Timeline:
                 if fx['type'] == 'clone':
                     extra = max(extra, max(fx['offsets']))
             self._need(seg['shot'], off + n + extra + 2)
+        if seg['type'] == 'vsplit':
+            for p in seg['panels']:
+                self._need(p['shot'], p.get('offset', 0) + n + 2)
         if seg['type'] == 'intro':
+            if seg.get('base'):
+                self._need(seg['base']['shot'], seg['base'].get('offset', 0) + int(seg['p2'] * FPS) + 4)
             for st in seg['strips']:
                 self._need(st['shot'], st.get('offset', 0) + int(seg['p2'] * FPS) + 4)
             for i, bs in enumerate(seg['band']):
@@ -54,6 +59,34 @@ class Timeline:
 
     def until_beat(self, k1, seg):
         return self.add(self.cursor, fb(k1), seg)
+
+    def trans(self, kind, n_out=6, n_in=6, **kw):
+        """Attach a designed transition across the cut between the last two segments."""
+        A, B = self.segs[-2], self.segs[-1]
+        dA = A['dur']; o = n_out / FPS; i = n_in / FPS
+        fa, fb_ = A.setdefault('fx', []), B.setdefault('fx', [])
+        d = kw.get('dir', 1)
+        if kind == 'whip':
+            fa.append(dict(type='whip', t0=dA - o, t1=dA, dx=-d * 1750, out=True))
+            fb_.append(dict(type='whip', t0=0.0, t1=i, dx=d * 1750))
+        elif kind == 'zoom':
+            fa.append(dict(type='push_out', t0=dA - o, t1=dA, z1=kw.get('z', 1.45)))
+            fb_.append(dict(type='zoom_out', t0=0.0, t1=i, z0=kw.get('z', 1.45)))
+        elif kind == 'redwipe':
+            if n_out > 0:
+                fa.append(dict(type='redpanel', mode='cover', t0=dA - o, t1=dA, dir=d))
+            if kw.get('reveal', True):
+                fb_.append(dict(type='redpanel', mode='reveal', t0=0.0, t1=i, dir=d, label=kw.get('label'), label_size=kw.get('label_size', 150)))
+        elif kind == 'lb':
+            fa.append(dict(type='lb_close', t0=dA - o, t1=dA))
+            fb_.append(dict(type='lb_open', t0=0.0, t1=i))
+        elif kind == 'flash':
+            fa.append(dict(type='overexpose', t0=dA - o, t1=dA, shape='up', amount=1.0))
+            fb_.append(dict(type='flash_pop', at=0.0))
+        elif kind == 'glitch':
+            fa.append(dict(type='glitch', t0=dA - o, t1=dA, strength=0.8))
+            fb_.append(dict(type='glitch', t0=0.0, t1=i, strength=0.8))
+        return kind
 
     def sound(self, t, typ, **kw):
         d = dict(t=t, type=typ); d.update(kw); self.sfx.append(d)

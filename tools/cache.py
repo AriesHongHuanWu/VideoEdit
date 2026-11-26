@@ -122,7 +122,9 @@ class FrameReader:
 _dis = None
 
 def flow_interp(a, b, t):
-    """Interpolate between uint8 frames a,b at fraction t using bidirectional DIS optical flow."""
+    """Occlusion-aware interpolation between uint8 frames a,b at fraction t.
+    Bidirectional DIS flow; where the two warps disagree (occlusions, fast edges) the result falls back
+    to the temporally nearest real frame instead of a warped mix, which removes most 'rubber' artifacts."""
     global _dis
     if _dis is None:
         _dis = cv2.DISOpticalFlow_create(cv2.DISOPTICAL_FLOW_PRESET_MEDIUM)
@@ -136,7 +138,14 @@ def flow_interp(a, b, t):
     gx, gy = np.meshgrid(np.arange(CW, dtype=np.float32), np.arange(CH, dtype=np.float32))
     wa = cv2.remap(a, gx + ft0[..., 0], gy + ft0[..., 1], cv2.INTER_LINEAR, borderMode=cv2.BORDER_REPLICATE)
     wb = cv2.remap(b, gx + ft1[..., 0], gy + ft1[..., 1], cv2.INTER_LINEAR, borderMode=cv2.BORDER_REPLICATE)
-    return cv2.addWeighted(wa, 1 - t, wb, t, 0)
+    mix = cv2.addWeighted(wa, 1 - t, wb, t, 0)
+    # disagreement mask (computed small, blurred) -> fall back to nearest real frame there
+    d = cv2.absdiff(cv2.resize(wa, (CW // 4, CH // 4)), cv2.resize(wb, (CW // 4, CH // 4))).max(axis=2).astype(np.float32)
+    m = np.clip((d - 18) / 30, 0, 1)
+    m = cv2.resize(cv2.GaussianBlur(m, (0, 0), 2), (CW, CH))[..., None]
+    nearest = a if t < 0.5 else b
+    out = mix.astype(np.float32) * (1 - m) + nearest.astype(np.float32) * m
+    return np.clip(out, 0, 255).astype(np.uint8)
 
 def build(shot, src_path, out_dir, lut_dir):
     """shot: dict(id, clip, src_in, n_frames, speed, crop, grade(optional dict overrides), interp)"""
