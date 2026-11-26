@@ -105,15 +105,29 @@ def download(record, path, url):
 
 
 def mounted_sources(source):
-    paths = {group: Path(os.environ[f"COLAB_DRIVE_{group.upper()}"])
-             for group in ("Italy", "Rome")}
-    for record in source:
-        file = paths[record["group"]] / record["name"]
-        if not file.is_file():
-            raise FileNotFoundError(f"Missing in mounted Drive: {record['group']}/{record['name']}")
-        if file.stat().st_size != record["size"]:
-            raise RuntimeError(f"Mounted Drive size differs: {record['name']}")
-    return paths
+    for group in ("Italy", "Rome"):
+        variable = f"COLAB_DRIVE_{group.upper()}"
+        root = Path(os.environ[variable])
+        expected = [record for record in source if record["group"] == group]
+        candidates = [root, root / group]
+        if root.is_dir():
+            candidates.extend(path for path in root.iterdir() if path.is_dir())
+        for candidate in dict.fromkeys(candidates):
+            if not candidate.is_dir():
+                continue
+            matching = [record for record in expected if (candidate / record["name"]).is_file()]
+            if len(matching) != len(expected):
+                continue
+            for record in expected:
+                if (candidate / record["name"]).stat().st_size != record["size"]:
+                    raise RuntimeError(f"Mounted Drive size differs: {group}/{record['name']}")
+            os.environ[variable] = str(candidate)
+            print(f"Verified mounted {group} source: {len(expected)} video files", flush=True)
+            break
+        else:
+            best = max((sum((p / item["name"]).is_file() for item in expected)
+                        for p in candidates if p.is_dir()), default=0)
+            raise FileNotFoundError(f"{group}: at most {best} of {len(expected)} expected videos found in the mounted path")
 
 
 def copy_from_mount(record, target, _url):
