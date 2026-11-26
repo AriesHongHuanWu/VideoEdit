@@ -1,0 +1,27 @@
+name: Transfer Drive videos to VideoEdit
+on:
+  push:
+    branches:
+      - codex/import-italy-rome-20261126
+    paths:
+      - .github/workflows/drive-video-import.yml
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: videoedit-italy-rome-import
+  cancel-in-progress: false
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 110
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TARGET_BRANCH: claude/relaxed-planck-dprxpx
+    steps:
+      - uses: actions/checkout@v4
+      - name: Transfer and verify original MP4 assets
+        run: |
+          python3 -m venv "$RUNNER_TEMP/video-transfer"
+          "$RUNNER_TEMP/video-transfer/bin/python" -m pip install --disable-pip-version-check requests==2.32.5
+          "$RUNNER_TEMP/video-transfer/bin/python" .github/drive-video-import/import.py
