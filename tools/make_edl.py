@@ -11,7 +11,12 @@ from edl_lib import Timeline, fb, tb, FPB
 P = sys.argv[1]; ROUGH = '--rough' in sys.argv
 os.makedirs(P, exist_ok=True)
 T = Timeline()
-S = T.shot
+_shot = T.shot
+def S(sid, clip, src_in, **kw):
+    if sid in GRADE_EARLY:
+        kw.setdefault('grade', {}).update(GRADE_EARLY[sid])
+    return _shot(sid, clip, src_in, **kw)
+GRADE_EARLY = {'m_stairs': {'exposure_mult': 1.15}, 'm_vault2': {'exposure_mult': 1.1}, 'v_gondolier': {'exposure_mult': 1.12}}
 
 # ------------------------------------------------------------------ shots (clip, source in-point s, speed)
 # Milano (19-20 May)
@@ -57,8 +62,21 @@ else:
         S(sid, clip, src, note='ROUGH placeholder')
     rome['strip'] = 'r1'; rome['band'] = ['r2', 'r3', 'r4']; rome['hook_hud'] = 'v_hud'; rome['hook_inv'] = 'r9'
 
+SOFT = {'type': 'soft_glow', 'amount': 0.6}            # 柔光 (Pro-Mist style diffusion)
+def SCATTER(a=0.6):                                      # 散光 (star / streak light scatter from specular highlights)
+    return {'type': 'light_scatter', 'amount': a}
+DIFFUSE = {'v_bowsalute': SOFT, 'v_lamp': SOFT, 'v_first': dict(SOFT, amount=0.38, mist=0.05), 'v_simeone': dict(SOFT, amount=0.45), 'v_salute': dict(SOFT, amount=0.5),
+           'v_rialto': dict(SOFT, amount=0.4), 'm_stairs': SCATTER(0.7), 'v_motorboat': SCATTER(0.65), 'v_hud': SCATTER(0.45),
+           'v_bow': SCATTER(0.4), 'm_vault': dict(SOFT, amount=0.35)}
+GRADE = {'m_stairs': {'exposure_mult': 1.15}, 'm_vault2': {'exposure_mult': 1.1}, 'v_gondolier': {'exposure_mult': 1.12}}
+
 def seg_shot(sid, **kw):
-    d = dict(type='shot', shot=sid); d.update(kw); return d
+    d = dict(type='shot', shot=sid); d.update(kw)
+    fx = list(d.get('fx', []))
+    if sid in DIFFUSE and not any(f['type'] in ('soft_glow', 'light_scatter') for f in fx):
+        fx = [dict(DIFFUSE[sid])] + fx             # diffusion first, graphics on top stay crisp
+    d['fx'] = fx
+    return d
 
 # ------------------------------------------------------------------ HOOK  (b0 - b4)
 hook_hud = rome.get('hook_hud', 'v_hud')
@@ -161,7 +179,7 @@ T.frames(6, dict(type='card', card='red', halation=0.0))
 T.sound(tb(80), 'boom', gain=0, dur=2.2); T.sound(tb(80), 'impact', gain=0, dur=2.0)
 END_FRAMES = 150
 T.frames(END_FRAMES, dict(type='card', card='end', places=rome.get('places', 'MILANO  ·  VENEZIA  ·  ROMA'),
-                          dates=rome.get('dates', 'MAY 2026'), size=330, halation=0.1, grain=0.035))
+                          dates=rome.get('dates', 'MAY 2026'), size=330, halation=0.1, grain=0.026))
 n_frames = T.cursor
 
 audio = dict(song_start=11.648, dur=n_frames / 60 + 0.05,
@@ -172,7 +190,7 @@ audio = dict(song_start=11.648, dur=n_frames / 60 + 0.05,
              outro=[tb(80) + 0.25, tb(80) + 1.9, 280, tb(80) + 1.2, n_frames / 60],
              lufs=-14.0, tp=-1.5, sc_depth=-10.0, sc_full=-2.0)
 T.sound(tb(48) - 2 / 60, 'riser', dur=tb(48) - tb(40.2), gain=-4)
-post = dict(halation=0.2, vignette=0.16, grain=0.03)
+post = dict(halation=0.2, vignette=0.16, grain=0.022)
 edl, shots = T.export(os.path.join(P, 'edl.json'), os.path.join(P, 'shots.json'), audio, post, n_frames)
 # fx jobs (tracks / mattes) for build_all
 fxjobs = [dict(kind='track', shot='v_hud', out='track_taxi.json', x=0.745, y=0.47, box=0.05),

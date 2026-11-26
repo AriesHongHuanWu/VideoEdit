@@ -131,17 +131,17 @@ class Grain:
         self.bank = []
         for _ in range(n):
             g = rng.standard_normal((h, w)).astype(np.float32)
-            g = cv2.GaussianBlur(g, (0, 0), 0.75)
+            g = cv2.GaussianBlur(g, (0, 0), 0.62)
             g /= g.std() + 1e-6
             c = rng.standard_normal((h // 2, w // 2, 3)).astype(np.float32)
             c = cv2.resize(cv2.GaussianBlur(c, (0, 0), 0.8), (w, h))
             c /= c.std() + 1e-6
             self.bank.append((g.astype(np.float16), c.astype(np.float16)))
 
-    def apply(self, img, k, amount=0.032, chroma=0.25):
+    def apply(self, img, k, amount=0.022, chroma=0.12):
         g, c = self.bank[k % len(self.bank)]
         L = luma(img)
-        resp = (0.35 + 1.6 * L * (1 - L) * 2.0)[..., None]   # more grain in mids
+        resp = (0.30 + 2.6 * L * (1 - L))[..., None]   # finer, mostly in the mids
         noise = (g.astype(np.float32)[..., None] + chroma * c.astype(np.float32))
         return np.clip(img + noise * amount * resp, 0, 1)
 
@@ -467,3 +467,55 @@ def _text_on_layer(rgb, alpha, text, font, size, x, y, anchor, a):
 def apply_layer(img, rgb, alpha):
     a = alpha[..., None]
     return img * (1 - a) + rgb * a
+
+# ----------------------------------------------------------------- diffusion: 柔光 (soft glow) and 散光 (light scatter)
+def soft_glow(img, amount=0.55, radius=22, thresh=0.42, tint=(1.0, 0.93, 0.84), mist=0.10):
+    """Pro-Mist style 柔光: highlights and upper mids bloom softly, micro-contrast eases, blacks lift a touch."""
+    h, w = img.shape[:2]
+    small = cv2.resize(img, (w // 4, h // 4), interpolation=cv2.INTER_AREA)
+    L = luma(small)
+    wgt = np.clip((L - thresh) / (1 - thresh), 0, 1) ** 1.3
+    src = small * wgt[..., None]
+    b1 = cv2.GaussianBlur(src, (0, 0), radius / 4)
+    b2 = cv2.GaussianBlur(src, (0, 0), radius)
+    glow = (b1 * 0.55 + b2 * 0.75) * np.array(tint, np.float32)
+    glow = cv2.resize(glow, (w, h), interpolation=cv2.INTER_LINEAR)
+    out = screen(img, np.clip(glow * amount, 0, 1))
+    if mist > 0:
+        soft = cv2.GaussianBlur(img, (0, 0), 2.2)
+        out = out * (1 - mist * amount) + soft * (mist * amount)
+        out = out * (1 - 0.035 * amount) + 0.035 * amount * np.array([0.93, 0.9, 0.88], np.float32)
+    return np.clip(out, 0, 1).astype(np.float32)
+
+@functools.lru_cache(maxsize=16)
+def _streak_kernel(length, angle_deg, falloff=0.33):
+    n = int(length) | 1
+    k = np.zeros((n, n), np.float32)
+    c = n // 2
+    a = math.radians(angle_deg)
+    for i in range(-c, c + 1):
+        x = int(round(c + i * math.cos(a))); y = int(round(c - i * math.sin(a)))
+        if 0 <= x < n and 0 <= y < n:
+            k[y, x] = math.exp(-abs(i) / max(1.0, c * falloff))
+    return k / k.sum()
+
+def light_scatter(img, amount=0.6, length=0.30, rays=((0, 1.0, 1.0), (90, 0.4, 0.45), (45, 0.25, 0.3), (135, 0.25, 0.3)),
+                  tint=(1.0, 0.95, 0.9), gain=3.2):
+    """散光: light streaks / star rays from small specular highlights only (water glints, lamps, the sun).
+    Large bright areas (sky, skylights, white walls) are excluded with a local top-hat + area test."""
+    h, w = img.shape[:2]
+    small = cv2.resize(img, (w // 4, h // 4), interpolation=cv2.INTER_AREA)
+    L = luma(small)
+    bg = cv2.GaussianBlur(L, (0, 0), 5)
+    spec = np.clip((L - bg - 0.06) / 0.22, 0, 1) * np.clip((L - 0.70) / 0.25, 0, 1)
+    big = cv2.GaussianBlur((L > 0.88).astype(np.float32), (0, 0), 9)
+    spec *= np.clip(1 - (big - 0.2) / 0.3, 0, 1)
+    src = small * (spec ** 1.5)[..., None]
+    acc = np.zeros_like(src)
+    for ang, rel_len, weight in rays:
+        k = _streak_kernel(max(5, int(w / 4 * length * rel_len)), ang)
+        acc += cv2.filter2D(src, -1, k, borderType=cv2.BORDER_CONSTANT) * weight
+    acc += cv2.GaussianBlur(src, (0, 0), 2.5) * 0.8
+    acc = acc * gain * np.array(tint, np.float32)
+    acc = cv2.resize(acc, (w, h), interpolation=cv2.INTER_LINEAR)
+    return np.clip(screen(img, np.clip(acc * amount, 0, 1)), 0, 1).astype(np.float32)

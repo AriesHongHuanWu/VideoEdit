@@ -169,6 +169,10 @@ def apply_fx(img, seg, tl, fi, ctx, base_fn):
             img = shutter(img, fx, tl - t0, base_fn, t0)
         elif typ == 'clone' and t0 <= tl < t1:
             img = clone(img, fx, tl, fi, ctx, seg)
+        elif typ == 'soft_glow' and t0 <= tl < t1:          # 柔光
+            img = E.soft_glow(img, fx.get('amount', 0.55), fx.get('radius', 22), fx.get('thresh', 0.42), mist=fx.get('mist', 0.10))
+        elif typ == 'light_scatter' and t0 <= tl < t1:      # 散光
+            img = E.light_scatter(img, fx.get('amount', 0.6), fx.get('length', 0.30), gain=fx.get('gain', 3.2))
         elif typ == 'scanlines' and t0 <= tl < t1:
             img = E.scanlines(img, fx.get('strength', 0.15))
     return img

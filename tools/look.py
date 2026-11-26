@@ -39,70 +39,75 @@ def hsv_to_rgb(h, s, v):
     return out
 
 def tone_curve(x):
-    """Filmic S: slightly pressed blacks, stronger mid contrast, soft highlight roll-off."""
-    xs = np.array([0.0, 0.03, 0.10, 0.22, 0.42, 0.62, 0.80, 0.92, 1.0])
-    ys = np.array([0.0, 0.013, 0.074, 0.192, 0.425, 0.66, 0.835, 0.932, 0.975])
+    """Filmic S: pressed blacks, firmer mids, soft highlight shoulder."""
+    xs = np.array([0.0, 0.03, 0.08, 0.18, 0.40, 0.60, 0.78, 0.90, 1.0])
+    ys = np.array([0.0, 0.007, 0.040, 0.140, 0.405, 0.655, 0.835, 0.935, 0.982])
     return np.interp(x, xs, ys)
 
 def creative_look(rgb, strength=1.0):
-    """Unified look: contrast, warm highlights, teal shadows/sky, film saturation."""
+    """Unified 'one camera' look: film density, filmic contrast, teal-cyan skies & shadows,
+    warm amber highlights, olive greens, rich warm tones and reds."""
     x = np.clip(rgb, 0, 1)
+    # --- film dye density: saturated colours get slightly darker / denser
+    mx = x.max(-1); mn = x.min(-1); sat0 = (mx - mn) / np.maximum(mx, 1e-4)
+    x = x * (1 - 0.10 * (sat0 ** 1.5))[..., None]
     L0 = luma(x)
-    # contrast on luminance, keep chroma ratio (avoid hue shifts), then blend a bit of per-channel curve for punch
     Lc = tone_curve(L0)
     ratio = np.where(L0 > 1e-5, Lc / np.maximum(L0, 1e-5), 1.0)[..., None]
     y = x * ratio
-    y = 0.75 * y + 0.25 * tone_curve(x)
+    y = 0.8 * y + 0.2 * tone_curve(x)
     y = np.clip(y, 0, 1)
     L = luma(y)
-    # hue work
     h, s, v = rgb_to_hsv(y)
     hd = h * 360
-    # blues / sky (190-260) -> toward teal-cyan 196, slightly richer
-    wb = smoothstep(175, 200, hd) * (1 - smoothstep(245, 275, hd))
-    hd = hd + wb * (196 - hd) * 0.45
-    s = s * (1 + 0.10 * wb)
-    # greens (75-165) -> slightly warmer/olive and calmer
-    wg = smoothstep(70, 95, hd) * (1 - smoothstep(150, 175, hd))
-    hd = hd - wg * 10
-    s = s * (1 - 0.18 * wg)
-    # oranges / skin (10-50): keep hue, gentle richness
-    wo = smoothstep(5, 18, hd) * (1 - smoothstep(42, 58, hd))
-    s = s * (1 + 0.06 * wo)
+    # skies / blues -> teal-cyan, a touch deeper and richer
+    wb = smoothstep(170, 195, hd) * (1 - smoothstep(250, 280, hd))
+    hd = hd + wb * (193 - hd) * 0.6
+    s = s * (1 + 0.14 * wb)
+    v = v * (1 - 0.06 * wb * smoothstep(0.4, 0.9, v))
+    # cyans/water: keep teal, slightly richer
+    wc = smoothstep(150, 170, hd) * (1 - smoothstep(190, 205, hd))
+    s = s * (1 + 0.08 * wc)
+    # greens -> olive, calmer
+    wg = smoothstep(65, 90, hd) * (1 - smoothstep(145, 170, hd))
+    hd = hd - wg * 12
+    s = s * (1 - 0.22 * wg)
+    # oranges / skin / brick: warm and rich (pull slightly toward orange)
+    wo = smoothstep(4, 16, hd) * (1 - smoothstep(44, 60, hd))
+    hd = hd + wo * (26 - hd) * 0.15
+    s = s * (1 + 0.10 * wo)
+    # yellows (tungsten casts) -> calmer
+    wy = smoothstep(45, 55, hd) * (1 - smoothstep(66, 80, hd))
+    s = s * (1 - 0.18 * wy)
     # reds richer
-    wr = 1 - smoothstep(8, 20, hd) + smoothstep(340, 352, hd)
-    wr = np.clip(wr, 0, 1)
-    s = s * (1 + 0.10 * wr)
-    # film saturation: less in deep shadows & near-white
-    sat_curve = 1.10 - 0.28 * (1 - smoothstep(0.02, 0.20, L)) - 0.25 * smoothstep(0.82, 1.0, L)
+    wr = np.clip(1 - smoothstep(6, 18, hd) + smoothstep(342, 354, hd), 0, 1)
+    s = s * (1 + 0.14 * wr)
+    # film saturation curve + vibrance
+    sat_curve = 1.08 - 0.30 * (1 - smoothstep(0.02, 0.20, L)) - 0.30 * smoothstep(0.80, 1.0, L)
     s = s * sat_curve
-    # vibrance: lift low-saturation colours more than already-saturated ones
-    s = np.clip(s + 0.16 * s * (1 - s) * smoothstep(0.08, 0.3, L), 0, 1)
+    s = np.clip(s + 0.14 * s * (1 - s) * smoothstep(0.08, 0.3, L), 0, 1)
     y = hsv_to_rgb(hd / 360.0, s, v)
     L = luma(y)
-    # split toning (additive, luminance weighted)
-    ws = (1 - smoothstep(0.04, 0.42, L)) * smoothstep(0.0, 0.04, L)
-    wh = smoothstep(0.50, 0.92, L)
-    y = y + ws[..., None] * np.array([-0.030, 0.006, 0.030])
-    y = y + wh[..., None] * np.array([0.032, 0.010, -0.040])
-    # gentle overall warmth in mids
-    wm = smoothstep(0.2, 0.5, L) * (1 - smoothstep(0.6, 0.9, L))
-    y = y + wm[..., None] * np.array([0.010, 0.002, -0.010])
+    # split toning: teal shadows, warm amber highlights, gentle warm mids
+    ws = (1 - smoothstep(0.03, 0.45, L)) * smoothstep(0.0, 0.035, L)
+    wh = smoothstep(0.48, 0.95, L)
+    wm = smoothstep(0.22, 0.48, L) * (1 - smoothstep(0.58, 0.85, L))
+    y = y + ws[..., None] * np.array([-0.040, 0.006, 0.040])
+    y = y + wh[..., None] * np.array([0.042, 0.014, -0.050])
+    y = y + wm[..., None] * np.array([0.012, 0.003, -0.012])
     y = np.clip(y, 0, 1)
     return rgb * (1 - strength) + y * strength
 
 def normalise(rgb, p):
-    """Per-shot correction. p: dict(gains=(r,g,b) linear, exposure=linear mult, black=lin black level, white=lin white)."""
+    """Per-shot primary correction. p: gains (linear), exposure (linear), black / white (linear levels)."""
     lin = np.power(np.clip(rgb, 0, 1), GAMMA)
     g = np.array(p.get('gains', (1, 1, 1))) * p.get('exposure', 1.0)
     lin = lin * g
-    # levels in linear: subtract part of the black floor, stretch whites gently
     b = p.get('black', 0.0); w = p.get('white', 1.0)
     lin = (lin - b) / max(1e-4, (w - b))
     lin = np.clip(lin, 0, None)
-    # soft clip highlights that exceed 1 after gains
-    over = lin > 0.85
-    lin = np.where(over, 0.85 + 0.15 * np.tanh((lin - 0.85) / 0.15), lin)
+    over = lin > 0.8
+    lin = np.where(over, 0.8 + 0.2 * np.tanh((lin - 0.8) / 0.2), lin)
     return np.power(np.clip(lin, 0, 1), 1 / GAMMA)
 
 def build_lut(p, n=33, look_strength=1.0):
@@ -120,44 +125,38 @@ def write_cube(path, lut, n, title='look'):
         for v in flat:
             f.write(f'{v[0]:.6f} {v[1]:.6f} {v[2]:.6f}\n')
 
-def estimate_params(frames_rgb, wb_strength=0.6, target_mid=0.42, exp_strength=0.5):
-    """frames_rgb: list of float RGB [0,1] (gamma) sample frames from the shot.
-    Gray-world on mid-tones in linear light; partial correction to keep ambience."""
+def estimate_params(frames_rgb, wb_strength=None, target_mid=0.42, exp_strength=0.65):
+    """Gray-world on near-neutral mid-tones (linear light). Strong casts (tungsten interiors) are corrected
+    harder than mild daylight casts, which keeps golden light golden but removes muddy yellow-green."""
     acc = []; lums = []
     for fr in frames_rgb:
         lin = np.power(np.clip(fr, 0, 1), GAMMA)
         L = luma(fr)
-        m = (L > 0.12) & (L < 0.85)
-        # exclude strongly saturated pixels (sky/foliage/neon) from gray estimate
         mx = fr.max(-1); mn = fr.min(-1)
         sat = (mx - mn) / np.maximum(mx, 1e-4)
-        m &= sat < 0.45
+        m = (L > 0.10) & (L < 0.88) & (sat < 0.40)
         if m.sum() > 500:
-            acc.append(lin[m].mean(0))
+            acc.append(np.median(lin[m], 0) * 0.5 + lin[m].mean(0) * 0.5)
         lums.append(L.reshape(-1))
+    gains = np.array([1.0, 1.0, 1.0])
     if acc:
         mean = np.mean(acc, 0)
-        gray = mean.mean()
-        gains = gray / np.maximum(mean, 1e-4)
-        gains = gains / gains[1]
-        gains = 1 + (gains - 1) * wb_strength
-        gains = np.clip(gains, 0.80, 1.25)
-    else:
-        gains = np.array([1.0, 1.0, 1.0])
+        raw = (mean.mean() / np.maximum(mean, 1e-4)); raw = raw / raw[1]
+        cast = float(np.abs(np.log(raw)).max())
+        k = wb_strength if wb_strength is not None else float(np.clip(0.45 + cast * 2.2, 0.45, 0.85))
+        gains = np.clip(1 + (raw - 1) * k, 0.78, 1.30)
     allL = np.concatenate(lums)
     med = float(np.median(allL))
-    # exposure: move median toward target (in gamma domain), partial
+    e_lin = 1.0
     if med > 1e-3:
         e_gamma = (target_mid / med) ** exp_strength
-        e_lin = np.clip(e_gamma ** GAMMA, 0.65, 2.4)
-    else:
-        e_lin = 1.0
-    p1 = float(np.percentile(allL, 0.8));
-    black = max(0.0, (p1 ** GAMMA) * 0.6 - 0.0005)
-    p995 = float(np.percentile(allL, 99.7))
+        e_lin = float(np.clip(e_gamma ** GAMMA, 0.6, 2.6))
+    p1 = float(np.percentile(allL, 0.7))
+    black = max(0.0, (p1 ** GAMMA) * 0.7 - 0.0004)
+    p995 = float(np.percentile(allL, 99.6))
     white = 1.0
-    if p995 < 0.9:   # dull highlights -> stretch a little
-        white = max(0.75, (p995 / 0.93) ** GAMMA)
+    if p995 < 0.92:
+        white = max(0.72, (p995 / 0.95) ** GAMMA)
     return dict(gains=tuple(float(x) for x in gains), exposure=float(e_lin), black=float(black), white=float(white), median=med)
 
 def apply_lut_np(img, lut, n):
