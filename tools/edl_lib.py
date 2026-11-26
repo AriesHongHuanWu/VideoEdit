@@ -88,6 +88,27 @@ class Timeline:
             fb_.append(dict(type='glitch', t0=0.0, t1=i, strength=0.8))
         return kind
 
+    def trans3d(self, kind='cube', n=10, direction=1, samples=5):
+        """3D transition straddling the cut (n frames each side). Outgoing shot gets n extra cached frames,
+        incoming shot is pre-rolled by n frames so both keep moving through the transition."""
+        A, B = self.segs[-2], self.segs[-1]
+        B['t3d'] = dict(kind=kind, n=n, dir=direction, samples=samples)
+        if A['type'] in ('shot', 'split') and 'shot' in A:
+            self._need(A['shot'], A.get('cache_offset', 0) + (A['f1'] - A['f0']) + n + 2)
+        if B['type'] in ('shot', 'split') and 'shot' in B:
+            B['cache_offset'] = B.get('cache_offset', 0) + n
+            self._need(B['shot'], B['cache_offset'] + (B['f1'] - B['f0']) + 2)
+        return kind
+
+    def cutout(self, kind, n_before=10, n_after=0, mask_dir=None, **kw):
+        """Cut-out (matte) transition from the previous segment into the last one."""
+        B = self.segs[-1]
+        B['tcut'] = dict(kind=kind, n_before=n_before, n_after=n_after, mask_dir=mask_dir, **kw)
+        return kind
+
+    def title3d(self, **fx):
+        self.segs[-1].setdefault('fx3d', []).append(fx)
+
     def sound(self, t, typ, **kw):
         d = dict(t=t, type=typ); d.update(kw); self.sfx.append(d)
 

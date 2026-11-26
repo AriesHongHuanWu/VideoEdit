@@ -205,6 +205,8 @@ def apply_fx(img, seg, tl, fi, ctx, base_fn):
             img = E.soft_glow(img, fx.get('amount', 0.55), fx.get('radius', 22), fx.get('thresh', 0.42), mist=fx.get('mist', 0.10))
         elif typ == 'light_scatter' and t0 <= tl < t1:      # 散光
             img = E.light_scatter(img, fx.get('amount', 0.6), fx.get('length', 0.30), gain=fx.get('gain', 3.2))
+        elif typ == 'label' and t0 <= tl < t1:
+            img = E.label(img, fx['text'], fx.get('sub'), tl - t0, fx.get('x', 72), fx.get('y', H - 118), fx.get('idx'))
         elif typ == 'scanlines' and t0 <= tl < t1:
             img = E.scanlines(img, fx.get('strength', 0.15))
     return img
@@ -308,7 +310,8 @@ def card(seg, tl, ctx):
         # letters slam: scale 1.18 -> 1.0 with tiny shake
         u = min(1.0, tl / 0.12); s = 1.0 + 0.18 * (1 - E.ease_out_expo(u))
         size = int(seg.get('size', 560) * s)
-        E.draw_text(bg, seg.get('text', 'ROMA'), 'anton', size, E.WHITE, W // 2, H // 2 + 18, 'mm', seg.get('tracking', 6))
+        if seg.get('text', 'ROMA'):
+            E.draw_text(bg, seg.get('text', 'ROMA'), 'anton', size, E.WHITE, W // 2, H // 2 + 18, 'mm', seg.get('tracking', 6))
         if seg.get('sub'):
             E.draw_text(bg, seg['sub'], 'inter_med', 26, E.WHITE, W // 2, H // 2 + 330, 'mm', tracking=10)
         bg = E.scanlines(bg, 0.07, 4)
@@ -320,11 +323,13 @@ def card(seg, tl, ctx):
     if kind == 'red':
         return E.solid(E.RED)
     if kind == 'end':
-        bg = E.solid(E.WINE)
+        k = E.ease_in_out_cubic(min(1.0, tl / 0.28))          # full red from the final hit settles into wine
+        bg = E.solid(E.RED * (1 - k) + E.WINE * k)
         u = E.ease_out_cubic(min(1.0, tl / 0.35))
         size = int(seg.get('size', 330))
         trk = int(seg.get('tracking', 10) + 26 * (1 - u))
-        E.draw_text(bg, 'ITALIA', 'anton', size, E.WHITE, W // 2, H // 2 - 40, 'mm', trk, alpha=min(1.0, tl / 0.12))
+        if not seg.get('title3d'):
+            E.draw_text(bg, 'ITALIA', 'anton', size, E.WHITE, W // 2, H // 2 - 40, 'mm', trk, alpha=min(1.0, tl / 0.12))
         a2 = E.clamp01((tl - 0.35) / 0.3)
         if a2 > 0:
             E.draw_text(bg, seg.get('places', ''), 'inter_semi', 30, E.WHITE, W // 2, H // 2 + 165, 'mm', 9, a2)
@@ -457,14 +462,8 @@ def intro(seg, tl, fi, cache, ctx):
     return out
 
 # ------------------------------------------------------------------ main loop
-def render_frame(edl, gi, cache, ctx, grain):
-    t = gi / FPS
-    seg = None
-    for s in edl['segments']:
-        if s['f0'] <= gi < s['f1']:
-            seg = s; break
-    if seg is None:
-        return E.solid(E.BLACK)
+def compose(edl, seg, gi, cache, ctx):
+    """Fully composed frame (before global finishing) of segment `seg` at global frame gi (may lie outside seg)."""
     fi = gi - seg['f0']; tl = fi / FPS
     typ = seg['type']
     if typ == 'shot':
@@ -472,7 +471,7 @@ def render_frame(edl, gi, cache, ctx, grain):
         img = shot_frame(seg, cache, tl, fi, ctx['tracks'])
         img = apply_fx(img, seg, tl, fi, ctx, base_fn)
     elif typ == 'card':
-        img = card(seg, tl, ctx)
+        img = card(seg, max(0.0, tl), ctx)
         img = apply_fx(img, seg, tl, fi, ctx, lambda tt: img)
     elif typ == 'split':
         img = split_card(seg, tl, fi, cache, ctx)
@@ -485,10 +484,110 @@ def render_frame(edl, gi, cache, ctx, grain):
         img = apply_fx(img, seg, tl, fi, ctx, lambda tt: img)
     else:
         img = E.solid(E.BLACK)
-    # wipe-in from previous shot (foreground wipe): previous segment continues under a moving mask
-    wp = seg.get('wipe_in')
-    if wp and tl < wp['dur']:
-        prev = next(s for s in edl['segments'] if s['f1'] == seg['f0'])
+    for fx in seg.get('fx3d', []):
+        t0 = fx.get('t0', 0.0); t1 = fx.get('t1', 1e9)
+        if t0 <= tl < t1:
+            img = text3d_fx(img, fx, tl - t0, fi + seg.get('cache_offset', 0))
+    return img
+
+_mask_cache = {}
+def _mask(path):
+    if path not in _mask_cache:
+        if len(_mask_cache) > 24:
+            _mask_cache.clear()
+        m = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
+        _mask_cache[path] = None if m is None else cv2.resize(m.astype(np.float32) / 255.0, (W, H))
+    return _mask_cache[path]
+
+def cutout_transition(edl, A, B, gi, cache, ctx, img):
+    tc = B['tcut']; kind = tc['kind']
+    fA = gi - A['f0']
+    k_ref = min(fA, A['f1'] - A['f0'] - 1) + A.get('cache_offset', 0)
+    mpath = os.path.join(tc['mask_dir'], f'{k_ref:05d}.png') if tc.get('mask_dir') else None
+    if kind in ('subject_hold',) and gi >= B['f0']:
+        u = (gi - B['f0']) / max(1, tc.get('n_after', 20))
+        if u >= 1:
+            return img
+        kfreeze = (B['f0'] - 1 - A['f0']) + A.get('cache_offset', 0)
+        m = _mask(os.path.join(tc['mask_dir'], f'{kfreeze:05d}.png'))
+        if m is None:
+            return img
+        a_img = compose(edl, A, B['f0'] - 1, cache, ctx)
+        rgb, al, sh = E.sticker(a_img, m, outline=7)
+        sc = 1.0 + 0.10 * E.ease_out_cubic(u)
+        dx = tc.get('drift', -60) * E.ease_in_cubic(u)
+        M = cv2.getRotationMatrix2D((W / 2, H / 2), 0, sc); M[0, 2] += dx
+        warp = lambda x: cv2.warpAffine(x, M, (W, H), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
+        rgb, al, sh = warp(rgb), warp(al), warp(sh)
+        fade = 1.0 - E.ease_in_cubic(max(0.0, (u - 0.65) / 0.35))
+        img = img * (1 - sh[..., None] * fade)
+        return img * (1 - al[..., None] * fade) + rgb * (al * fade)[..., None]
+    if kind == 'subject_hold' and gi < B['f0']:
+        # outline draws on around the subject just before the swap
+        u = 1 - (B['f0'] - gi) / max(1, tc.get('n_before', 8))
+        m = _mask(mpath) if mpath else None
+        if m is None:
+            return img
+        rgb, al, sh = E.sticker(img, m, outline=7)
+        return img * (1 - al[..., None] * u) + rgb * (al * u)[..., None]
+    if kind == 'mask_zoom' and gi < B['f0']:
+        u = 1 - (B['f0'] - gi) / max(1, tc.get('n_before', 12))
+        m = _mask(mpath) if mpath else None
+        if m is None:
+            return img
+        ys, xs = np.nonzero(m > 0.5)
+        cy_, cx_ = (ys.mean(), xs.mean()) if len(xs) else (H / 2, W / 2)
+        sc = 1 + 9 * E.ease_in_expo(u)
+        M = cv2.getRotationMatrix2D((cx_, cy_), 0, sc); M[0, 2] += (W / 2 - cx_) * E.ease_in_cubic(u); M[1, 2] += (H / 2 - cy_) * E.ease_in_cubic(u)
+        mm = cv2.warpAffine(m, M, (W, H), flags=cv2.INTER_LINEAR)
+        b_img = compose(edl, B, B['f0'], cache, ctx)
+        edge = np.clip(cv2.dilate(mm, np.ones((9, 9), np.uint8)) - mm, 0, 1)
+        out = img * (1 - mm[..., None]) + b_img * mm[..., None]
+        return out * (1 - edge[..., None]) + edge[..., None]
+    if kind == 'sky_reveal' and gi < B['f0']:
+        u = 1 - (B['f0'] - gi) / max(1, tc.get('n_before', 14))
+        m = E.sky_mask(img)
+        rad = int(2 + 260 * E.ease_in_expo(u))
+        mm = cv2.dilate(m, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * rad + 1, 2 * rad + 1))) if rad > 2 else m
+        mm = np.maximum(mm, E.ease_in_expo(u) ** 2)
+        b_img = compose(edl, B, B['f0'], cache, ctx)
+        zz = 1.18 - 0.18 * E.ease_out_cubic(u)
+        Mz = cv2.getRotationMatrix2D((W / 2, H / 2), 0, zz)
+        b_img = cv2.warpAffine(b_img, Mz, (W, H), borderMode=cv2.BORDER_REFLECT)
+        return img * (1 - mm[..., None]) + b_img * mm[..., None]
+    return img
+
+def render_frame(edl, gi, cache, ctx, grain):
+    segs = edl['segments']
+    idx = next((i for i, s in enumerate(segs) if s['f0'] <= gi < s['f1']), None)
+    if idx is None:
+        return E.solid(E.BLACK)
+    seg = segs[idx]; fi = gi - seg['f0']; tl = fi / FPS
+    img = None
+    # 3D transitions straddle the cut: [B.f0 - n, B.f0 + n)
+    for j in (idx, idx + 1):
+        if 0 < j < len(segs) and segs[j].get('t3d'):
+            Bs, As = segs[j], segs[j - 1]; t3 = Bs['t3d']; n = t3.get('n', 10)
+            if Bs['f0'] - n <= gi < Bs['f0'] + n:
+                u = (gi - (Bs['f0'] - n) + 0.5) / (2 * n)
+                a_img = compose(edl, As, gi, cache, ctx)
+                b_img = compose(edl, Bs, gi, cache, ctx)
+                img = E.transition3d(a_img, b_img, u, kind=t3.get('kind', 'cube'), direction=t3.get('dir', 1),
+                                     samples=t3.get('samples', 5), du=1.0 / (2 * n))
+                seg = Bs if gi >= Bs['f0'] else As
+                break
+    if img is None:
+        img = compose(edl, seg, gi, cache, ctx)
+        # cutout transitions
+        for j in (idx, idx + 1):
+            if 0 < j < len(segs) and segs[j].get('tcut'):
+                Bs, As = segs[j], segs[j - 1]; tc = Bs['tcut']
+                if Bs['f0'] - tc.get('n_before', 0) <= gi < Bs['f0'] + tc.get('n_after', 0):
+                    img = cutout_transition(edl, As, Bs, gi, cache, ctx, img)
+    # wipe-in from previous shot (foreground wipe)
+    wp = seg.get('wipe_in'); fi = gi - seg['f0']; tl = fi / FPS
+    if wp and 0 <= tl < wp['dur']:
+        prev = next(s for s in segs if s['f1'] == seg['f0'])
         pfi = gi - prev['f0']
         pimg = shot_frame(prev, cache, pfi / FPS, pfi, ctx['tracks'])
         u = E.ease_in_out_cubic(tl / wp['dur'])
@@ -497,7 +596,6 @@ def render_frame(edl, gi, cache, ctx, grain):
         feather = wp.get('feather', 70)
         m = np.clip((edge - xs) / feather + 0.5, 0, 1) if wp.get('dir', 1) > 0 else np.clip((xs - (W - edge)) / feather + 0.5, 0, 1)
         img = pimg * (1 - m[None, :, None]) + img * m[None, :, None]
-    # global finishing: halation, vignette, grain
     post = edl.get('post', {})
     hal = seg.get('halation', post.get('halation', 0.2))
     if hal > 0:
@@ -505,8 +603,27 @@ def render_frame(edl, gi, cache, ctx, grain):
     vig = seg.get('vignette', post.get('vignette', 0.16))
     if vig > 0:
         img = E.vignette(img, vig)
-    img = grain.apply(img, gi, amount=seg.get('grain', post.get('grain', 0.03)))
+    img = grain.apply(img, gi, amount=seg.get('grain', post.get('grain', 0.022)))
     return np.clip(img, 0, 1)
+
+def text3d_fx(img, fx, t, cache_idx=0):
+    """Animated 3D extruded title: keyframed yaw/pitch/scale/pos, specular sweep, fade."""
+    yaw = kf(fx.get('yaw'), t, 0.0); pitch = kf(fx.get('pitch'), t, 0.0); roll = kf(fx.get('roll'), t, 0.0)
+    sc = kf(fx.get('scale'), t, 1.0); pos = kf(fx.get('pos'), t, [W / 2, H / 2]); op = kf(fx.get('opacity'), t, 1.0)
+    sweep = kf(fx.get('sweep'), t, None) if fx.get('sweep') else None
+    if op <= 0.01:
+        return img
+    rgb, al, sh = E.text3d_layer(fx['text'], size=fx.get('size', 300), depth=fx.get('depth', 70), yaw=yaw, pitch=pitch, roll=roll,
+                                 scale=sc, pos=tuple(pos), front=tuple(fx.get('front', (1, 1, 1))), side=tuple(fx.get('side', (0.80, 0.78, 0.80))),
+                                 side_back=tuple(fx.get('side_back', (0.30, 0.29, 0.33))), sweep=sweep, tracking=fx.get('tracking', 6),
+                                 layers=fx.get('layers', 40), shadow=fx.get('shadow', 0.45))
+    if fx.get('behind_matte'):          # 3D text placed behind the subject (rotoscope)
+        mp = os.path.join(fx['behind_matte'], f"{cache_idx:05d}.png")
+        m = _mask(mp)
+        if m is not None:
+            al = al * (1 - m); sh = sh * (1 - m) if sh is not None else None
+    al = al * op
+    return E.composite_text3d(img, rgb, al, sh * op if sh is not None else None)
 
 def render_range(edl_path, cache_dir, a, b, out_path, preview=False):
     edl = json.load(open(edl_path))

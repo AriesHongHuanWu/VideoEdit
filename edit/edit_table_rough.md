@@ -1,26 +1,26 @@
 | Time (s) | Beat | Frames | Shot (file @ source s) | Graphics / effects | Sound |
 |---|---|---|---|---|---|
 |   0.00–  0.73 |   0.0 | 44 | DJI_0165 @ 0.7 | light_scatter, Flash Pop In, HUD tracking, redpanel, camera move zoom 1.00->1.05 | boom, impact, click, chatter, whoosh |
-|   0.73–  1.08 |   2.0 | 21 | DJI_0062 @ 4.3 | redpanel, push_out, camera move zoom 1.00->1.10 | whoosh |
+|   0.73–  1.08 |   2.0 | 21 | DJI_0062 @ 4.3 | label, redpanel, push_out, camera move zoom 1.00->1.10 | whoosh |
 |   1.08–  1.45 |   3.0 | 22 | DJI_0061 @ 3.0 | Zoom Out, camera move zoom 1.00->1.06 |  |
 |   1.45–  5.82 |   4.0 | 262 |  | 'postcards from ITALIA' intro: 6 strips -> band -> decode -> band opens | whoosh, whoosh, chatter, boom, click |
 |   5.82–  6.55 |  16.0 | 44 | DJI_0049 @ 11.2 | soft_glow, Flash Pop In, full-width red headline 'MILANO', Flash Effect, camera move zoom 1.00->1.07 | impact, whoosh |
 |   6.55–  7.08 |  18.0 | 32 | DJI_0048 @ 9.6 | light_scatter, B&W, punch, Flash Pop In, push_out, camera move zoom 1.00->1.08 | shutter, whoosh |
-|   7.08–  7.63 |  19.5 | 33 | DJI_0041 @ 1.0 | Zoom Out, camera move zoom 1.02->1.09 |  |
-|   7.63–  8.37 |  21.0 | 44 | DJI_0060 @ 0.5 | red letterbox bounce, whip pan out | whoosh |
-|   8.37–  8.73 |  23.0 | 22 | DJI_0069 @ 20.2 | soft_glow, whip pan in, redpanel | whoosh, whoosh |
+|   7.08–  7.63 |  19.5 | 33 | DJI_0041 @ 1.0 | Zoom Out, whip pan out, camera move zoom 1.02->1.09 |  |
+|   7.63–  8.37 |  21.0 | 44 | DJI_0060 @ 0.5 | red letterbox bounce, whip pan in | whoosh, whoosh |
+|   8.37–  8.73 |  23.0 | 22 | DJI_0069 @ 20.4 | soft_glow, redpanel | impact, whoosh |
 |   8.73–  9.45 |  24.0 | 43 | DJI_0169 @ 0.6 | red split card 'VENEZIA' | impact, whoosh |
-|   9.45– 10.55 |  26.0 | 66 | DJI_0169 @ 1.3 | light_scatter, punch, glitch, camera move zoom 1.00->1.06 |  |
-|  10.55– 10.92 |  29.0 | 22 | DJI_0113 @ 0.6 | red/white duotone flash, glitch, whip pan out | click, whoosh |
-|  10.92– 11.63 |  30.0 | 43 | DJI_0139 @ 6.0 | Rotoscope text 'GONDOLA', whip pan in, Flash Effect | boom |
-|  11.63– 12.37 |  32.0 | 44 | DJI_0154 @ 10.8 | Clone Effect, Flash Pop In | click, click |
-|  12.37– 13.08 |  34.0 | 43 | DJI_0177 @ 5.6 | red-frame inset -> pop back, punch, push_out, camera move zoom 1.00->1.06 | whoosh, impact, whoosh |
-|  13.08– 13.82 |  36.0 | 44 | DJI_0111 @ 6.0 | Text Exclusion 'SAN MARCO', punch, Zoom Out, lb_close, camera move zoom 1.00->1.07 | whoosh |
-|  13.82– 14.55 |  38.0 | 44 | DJI_0145 @ 2.6 | soft_glow, lb_open, whip pan out, camera move zoom 1.00->1.05 |  |
-|  14.55– 14.92 |  40.0 | 22 | DJI_0078 @ 27.6 | whip pan in | whoosh |
-|  14.92– 15.63 |  41.0 | 43 |  | glitch | whoosh, whoosh |
-|  15.63– 16.00 |  43.0 | 22 | DJI_0182 @ 6.2 | glitch, camera move zoom 1.00->1.08 |  |
-|  16.00– 16.73 |  44.0 | 44 | DJI_0159 @ 0.0 | light_scatter, Shutter Clip, whip pan out | shutter, shutter, shutter, shutter, shutter, shutter, shutter, shutter |
+|   9.45– 10.37 |  26.0 | 55 | DJI_0169 @ 1.3 | light_scatter, punch, glitch, camera move zoom 1.00->1.06 |  |
+|  10.37– 10.92 |  28.5 | 33 | DJI_0113 @ 0.6 | red/white duotone flash, punch, glitch | click, whoosh |
+|  10.92– 11.63 |  30.0 | 43 | DJI_0139 @ 6.0 |  | boom |
+|  11.63– 12.37 |  32.0 | 44 | DJI_0154 @ 10.8 | Clone Effect, whip pan out | click, click |
+|  12.37– 13.08 |  34.0 | 43 | DJI_0177 @ 5.6 | red-frame inset -> pop back, punch, whip pan in, push_out, camera move zoom 1.00->1.06 | whoosh, impact, whoosh |
+|  13.08– 13.82 |  36.0 | 44 | DJI_0111 @ 6.0 | Text Exclusion 'SAN MARCO', punch, Zoom Out, camera move zoom 1.00->1.07 | whoosh |
+|  13.82– 14.55 |  38.0 | 44 | DJI_0145 @ 2.8 | soft_glow, label, camera move zoom 1.00->1.05 | whoosh |
+|  14.55– 14.92 |  40.0 | 22 | DJI_0078 @ 27.8 | HUD tracking, lb_close |  |
+|  14.92– 15.63 |  41.0 | 43 |  | lb_open, glitch | whoosh, whoosh |
+|  15.63– 16.00 |  43.0 | 22 | DJI_0182 @ 6.2 | glitch, Flash Effect, speed ramp 2.4x->2.4x->0.55x, camera move zoom 1.00->1.08 |  |
+|  16.00– 16.73 |  44.0 | 44 | DJI_0159 @ 0.0 | light_scatter, Shutter Clip, Flash Pop In, whip pan out | shutter, shutter, shutter, shutter, shutter, shutter, shutter, shutter |
 |  16.73– 17.42 |  46.0 | 41 | DJI_0171 @ 8.0 | soft_glow, Flash Effect, whip pan in |  |
 |  17.42– 17.45 |  47.9 | 2 |  | black, black | riser |
 |  17.45– 18.00 |  48.0 | 33 |  | red card 'ROMA' | boom, impact |

@@ -563,3 +563,222 @@ def crt_background(t, w=W, h=H, tint=(0.05, 0.035, 0.035)):
             img[yy, xs.astype(np.int32)] += np.array([0.55, 0.06, 0.04], np.float32) * a * (1 - 0.4 * abs(d))
     img *= 0.96 + 0.04 * math.sin(t * 50)
     return np.clip(img, 0, 1)
+
+# ----------------------------------------------------------------- 3D: camera helpers
+def rot_matrix(yaw=0.0, pitch=0.0, roll=0.0):
+    y, p, r = math.radians(yaw), math.radians(pitch), math.radians(roll)
+    Ry = np.array([[math.cos(y), 0, math.sin(y)], [0, 1, 0], [-math.sin(y), 0, math.cos(y)]])
+    Rx = np.array([[1, 0, 0], [0, math.cos(p), -math.sin(p)], [0, math.sin(p), math.cos(p)]])
+    Rz = np.array([[math.cos(r), -math.sin(r), 0], [math.sin(r), math.cos(r), 0], [0, 0, 1]])
+    return Rz @ Rx @ Ry
+
+def _project(pts3, f, cx, cy):
+    z = np.maximum(pts3[:, 2], 1e-3)
+    return np.stack([f * pts3[:, 0] / z + cx, f * pts3[:, 1] / z + cy], -1)
+
+def _warp_bbox(src, Hm, out_w, out_h, corners_src, border=4):
+    """warpPerspective limited to the projected bounding box; returns (patch, x0, y0)."""
+    pc = cv2.perspectiveTransform(corners_src.reshape(-1, 1, 2).astype(np.float64), Hm).reshape(-1, 2)
+    x0 = int(max(0, math.floor(pc[:, 0].min()) - border)); y0 = int(max(0, math.floor(pc[:, 1].min()) - border))
+    x1 = int(min(out_w, math.ceil(pc[:, 0].max()) + border)); y1 = int(min(out_h, math.ceil(pc[:, 1].max()) + border))
+    if x1 <= x0 or y1 <= y0:
+        return None, 0, 0
+    T = np.array([[1, 0, -x0], [0, 1, -y0], [0, 0, 1]], np.float64)
+    patch = cv2.warpPerspective(src, T @ Hm, (x1 - x0, y1 - y0), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
+    return patch, x0, y0
+
+# ----------------------------------------------------------------- 3D extruded text
+def text3d_layer(text, font='anton', size=360, depth=70, yaw=0.0, pitch=0.0, roll=0.0, scale=1.0, pos=(W / 2, H / 2),
+                 front=(1.0, 1.0, 1.0), side=(0.78, 0.76, 0.78), side_back=(0.32, 0.30, 0.34), tracking=6,
+                 sweep=None, focal=1900.0, ss=2, layers=40, shadow=0.45, out_w=W, out_h=H, front_grad=0.18):
+    """High-quality extruded 3D type. Returns (rgb, alpha) float32 at out_w x out_h.
+    sweep: 0..1 position of a specular light band across the front face (None = off)."""
+    m = text_mask(text, font, int(size * ss), int(tracking * ss), 24)
+    mh, mw = m.shape
+    Wc, Hc = out_w * ss, out_h * ss
+    f = focal * ss; cx, cy = pos[0] * ss, pos[1] * ss
+    R = rot_matrix(yaw, pitch, roll)
+    Z0 = f                                   # z of the front face at scale 1 -> 1:1 pixels
+    S = np.array([[scale, 0, -mw / 2 * scale], [0, scale, -mh / 2 * scale], [0, 0, 1]], np.float64)
+    K = np.array([[f, 0, cx], [0, f, cy], [0, 0, 1]], np.float64)
+    corners = np.array([[0, 0], [mw, 0], [mw, mh], [0, mh]], np.float64)
+    def H_at(d):
+        M = np.column_stack([R[:, 0], R[:, 1], R[:, 2] * d + np.array([0, 0, Z0])])
+        return K @ M @ S
+    rgb = np.zeros((Hc, Wc, 3), np.float32); alpha = np.zeros((Hc, Wc), np.float32)
+    dmax = depth * ss
+    side = np.array(side, np.float32); side_back = np.array(side_back, np.float32)
+    # extrusion: back to front
+    for i in range(layers, 0, -1):
+        d = dmax * i / layers
+        patch, x0, y0 = _warp_bbox(m, H_at(d), Wc, Hc, corners)
+        if patch is None:
+            continue
+        k = i / layers
+        col = side * (1 - k) + side_back * k
+        a = patch; h_, w_ = a.shape
+        reg_rgb = rgb[y0:y0 + h_, x0:x0 + w_]; reg_a = alpha[y0:y0 + h_, x0:x0 + w_]
+        reg_rgb *= (1 - a[..., None]); reg_rgb += a[..., None] * col
+        np.maximum(reg_a, a, out=reg_a)
+    # front face with lighting
+    patch, x0, y0 = _warp_bbox(m, H_at(0.0), Wc, Hc, corners)
+    if patch is not None:
+        h_, w_ = patch.shape
+        yy = np.linspace(0, 1, h_, dtype=np.float32)[:, None]
+        base = np.array(front, np.float32)[None, None, :] * (1 - front_grad * yy)[..., None]
+        # bevel rim light (top-left) and inner edge shade
+        mb = cv2.GaussianBlur(patch, (0, 0), 1.6 * ss)
+        gx = cv2.Sobel(mb, cv2.CV_32F, 1, 0, ksize=3); gy = cv2.Sobel(mb, cv2.CV_32F, 0, 1, ksize=3)
+        rim = np.clip((gx * 0.6 + gy * 0.8) * 2.0, 0, 1) * patch
+        shade = np.clip(-(gx * 0.6 + gy * 0.8) * 1.2, 0, 1) * patch
+        col = base + rim[..., None] * 0.25 - shade[..., None] * 0.18
+        if sweep is not None:
+            xs = np.linspace(0, 1, w_, dtype=np.float32)[None, :]
+            band = np.exp(-((xs + yy * 0.35 - (sweep * 1.6 - 0.3)) / 0.07) ** 2)
+            col = col + band[..., None] * 0.55
+        col = np.clip(col, 0, 1.2)
+        a = patch
+        reg_rgb = rgb[y0:y0 + h_, x0:x0 + w_]; reg_a = alpha[y0:y0 + h_, x0:x0 + w_]
+        reg_rgb *= (1 - a[..., None]); reg_rgb += a[..., None] * col
+        np.maximum(reg_a, a, out=reg_a)
+    # contact / drop shadow (soft, offset down-right)
+    sh = None
+    if shadow > 0:
+        sh = cv2.GaussianBlur(alpha, (0, 0), 14 * ss)
+        sh = np.roll(np.roll(sh, int(18 * ss), 0), int(10 * ss), 1) * shadow
+    # downsample (supersampling AA)
+    rgb_o = cv2.resize(rgb, (out_w, out_h), interpolation=cv2.INTER_AREA)
+    a_o = cv2.resize(alpha, (out_w, out_h), interpolation=cv2.INTER_AREA)
+    sh_o = cv2.resize(sh, (out_w, out_h), interpolation=cv2.INTER_AREA) if sh is not None else None
+    # un-premultiply colour where alpha>0
+    rgb_o = np.where(a_o[..., None] > 1e-4, rgb_o / np.maximum(a_o[..., None], 1e-4), 0)
+    return np.clip(rgb_o, 0, 1).astype(np.float32), np.clip(a_o, 0, 1).astype(np.float32), sh_o
+
+def composite_text3d(img, rgb, alpha, sh=None):
+    out = img
+    if sh is not None:
+        out = out * (1 - np.clip(sh, 0, 0.85)[..., None])
+    return out * (1 - alpha[..., None]) + rgb * alpha[..., None]
+
+# ----------------------------------------------------------------- 3D transitions (cube / flip / swing)
+def _face_warp(img, quad, Wc, Hc):
+    src = np.float32([[0, 0], [img.shape[1], 0], [img.shape[1], img.shape[0]], [0, img.shape[0]]])
+    Hm = cv2.getPerspectiveTransform(src, np.float32(quad))
+    patch, x0, y0 = _warp_bbox(img, Hm.astype(np.float64), Wc, Hc, src.astype(np.float64), border=2)
+    m = np.ones(img.shape[:2], np.float32)
+    mpatch, _, _ = _warp_bbox(m, Hm.astype(np.float64), Wc, Hc, src.astype(np.float64), border=2)
+    return patch, mpatch, x0, y0
+
+def transition3d(A, B, u, kind='cube', direction=1, ss=2, samples=5, shutter=0.85, du=0.05, bg=(0.012, 0.012, 0.014)):
+    """Render a 3D transition frame at progress u (0..1) between full frames A and B (float32 1920x1080).
+    Spatial supersampling (ss) + temporal sub-samples (motion blur)."""
+    Wc, Hc = W * ss, H * ss
+    f = 1.0 * W * ss          # focal (px) ~ 53 deg horizontal FOV
+    Aup = cv2.resize(A, (Wc, Hc), interpolation=cv2.INTER_LINEAR); Bup = cv2.resize(B, (Wc, Hc), interpolation=cv2.INTER_LINEAR)
+    a, b = Wc / 2, Hc / 2
+    em = ease_in_out_cubic(clamp01(u))
+    sm = cv2.resize(A * (1 - em) + B * em, (W // 8, H // 8), interpolation=cv2.INTER_AREA)
+    backdrop = cv2.resize(cv2.GaussianBlur(sm, (0, 0), 6), (Wc, Hc), interpolation=cv2.INTER_LINEAR) * 0.32
+    backdrop = backdrop * _vignette_mask(Wc, Hc, 0.6)[..., None]
+    acc = np.zeros((Hc, Wc, 3), np.float32)
+    offs = np.linspace(-0.5, 0.5, samples) * du * shutter if samples > 1 else [0.0]
+    for o in offs:
+        uu = clamp01(u + o); e = ease_in_out_cubic(uu)
+        canvas = backdrop.copy()
+        faces = []
+        if kind == 'cube':
+            pull = 0.42 * Wc * math.sin(math.pi * e) ** 1.2
+            R = rot_matrix(yaw=direction * 90.0 * e)
+            C = np.array([0, 0, f + a + pull])
+            fa = np.array([[-a, -b, -a], [a, -b, -a], [a, b, -a], [-a, b, -a]])                  # front (A)
+            if direction > 0:
+                fb = np.array([[a, -b, -a], [a, -b, a], [a, b, a], [a, b, -a]])                 # right side (B)
+            else:
+                fb = np.array([[-a, -b, a], [-a, -b, -a], [-a, b, -a], [-a, b, a]])             # left side (B)
+            for img, quad, nrm in ((Aup, fa, np.array([0, 0, -1.0])), (Bup, fb, np.array([direction * 1.0, 0, 0]))):
+                P = (R @ quad.T).T + C
+                n_w = R @ nrm
+                cen = P.mean(0)
+                facing = -np.dot(n_w, cen / np.linalg.norm(cen))
+                if facing <= 0.01:
+                    continue
+                faces.append((cen[2], img, _project(P, f, Wc / 2, Hc / 2), 0.30 + 0.70 * facing))
+        elif kind == 'flip':
+            pull = 0.30 * Wc * math.sin(math.pi * e) ** 1.2
+            R = rot_matrix(yaw=direction * 180.0 * e)
+            C = np.array([0, 0, f + pull])
+            front = np.array([[-a, -b, 0], [a, -b, 0], [a, b, 0], [-a, b, 0]])
+            back = np.array([[a, -b, 0], [-a, -b, 0], [-a, b, 0], [a, b, 0]])      # mirrored so B reads correctly
+            for img, quad, nrm in ((Aup, front, np.array([0, 0, -1.0])), (Bup, back, np.array([0, 0, 1.0]))):
+                P = (R @ quad.T).T + C
+                n_w = R @ nrm
+                facing = -np.dot(n_w, P.mean(0) / np.linalg.norm(P.mean(0)))
+                if facing <= 0.01:
+                    continue
+                faces.append((P.mean(0)[2], img, _project(P, f, Wc / 2, Hc / 2), 0.35 + 0.65 * facing))
+        elif kind == 'swing':
+            # B sits behind; A swings open on its left (dir=1) or right hinge like a door
+            canvas[:] = Bup * (0.55 + 0.45 * e)
+            hinge = -a if direction > 0 else a
+            ang = -direction * 105.0 * e
+            R = rot_matrix(yaw=ang)
+            quad = np.array([[-a, -b, 0], [a, -b, 0], [a, b, 0], [-a, b, 0]], np.float64)
+            q = quad.copy(); q[:, 0] -= hinge
+            P = (R @ q.T).T; P[:, 0] += hinge; P += np.array([0, 0, f])
+            n_w = R @ np.array([0, 0, -1.0])
+            facing = -np.dot(n_w, P.mean(0) / np.linalg.norm(P.mean(0)))
+            if facing > 0.01:
+                faces.append((P.mean(0)[2], Aup, _project(P, f, Wc / 2, Hc / 2), 0.25 + 0.75 * facing))
+        for _, img, quad, shade in sorted(faces, key=lambda t: -t[0]):     # far to near
+            patch, mpatch, x0, y0 = _face_warp(img, quad, Wc, Hc)
+            if patch is None:
+                continue
+            h_, w_ = mpatch.shape
+            reg = canvas[y0:y0 + h_, x0:x0 + w_]
+            reg *= (1 - mpatch[..., None]); reg += patch * shade * mpatch[..., None]
+        acc += canvas
+    acc /= len(offs)
+    return cv2.resize(acc, (W, H), interpolation=cv2.INTER_AREA)
+
+# ----------------------------------------------------------------- cutout helpers
+def sticker(img_rgb, mask, outline=6, color=WHITE, shadow=0.5, shadow_off=(14, 10)):
+    """Cut-out subject with a clean white outline and soft drop shadow. Returns (rgb, alpha, shadow_alpha)."""
+    m = np.clip(mask, 0, 1).astype(np.float32)
+    k = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * outline + 1, 2 * outline + 1))
+    dil = cv2.GaussianBlur(cv2.dilate(m, k), (0, 0), 1.2)
+    rgb = img_rgb * m[..., None] + np.asarray(color, np.float32)[None, None] * (dil - m)[..., None] * (dil > m)[..., None]
+    alpha = np.maximum(m, dil)
+    sh = cv2.GaussianBlur(alpha, (0, 0), 12)
+    sh = np.roll(np.roll(sh, shadow_off[1], 0), shadow_off[0], 1) * shadow
+    return rgb, alpha, sh
+
+def sky_mask(img):
+    """Rough sky matte: bright, low-texture, blue/cyan or near-white regions connected to the top edge."""
+    small = cv2.resize(img, (W // 4, H // 4), interpolation=cv2.INTER_AREA)
+    hsv = cv2.cvtColor((np.clip(small, 0, 1) * 255).astype(np.uint8), cv2.COLOR_RGB2HSV).astype(np.float32)
+    hh, ss_, vv = hsv[..., 0] * 2, hsv[..., 1] / 255, hsv[..., 2] / 255
+    tex = cv2.GaussianBlur(np.abs(cv2.Laplacian(vv, cv2.CV_32F)), (0, 0), 2)
+    cand = (vv > 0.45) & (tex < 0.06) & ((((hh > 165) & (hh < 245)) & (ss_ > 0.12)) | (ss_ < 0.12) & (vv > 0.75))
+    cand = cand.astype(np.uint8)
+    n, lab = cv2.connectedComponents(cand)
+    top = set(np.unique(lab[0:3, :])) - {0}
+    m = np.isin(lab, list(top)).astype(np.float32)
+    m = cv2.morphologyEx(m, cv2.MORPH_CLOSE, np.ones((5, 5), np.uint8))
+    m = cv2.resize(cv2.GaussianBlur(m, (0, 0), 1.5), (W, H), interpolation=cv2.INTER_LINEAR)
+    return np.clip(m, 0, 1)
+
+
+def label(img, text, sub=None, t=1.0, x=72, y=H - 118, idx=None):
+    """Editorial location label: thin red rule that draws on, typed caps (Inter) + optional small index/sub line."""
+    a = clamp01(t / 0.12)
+    rule = int(150 * ease_out_cubic(clamp01(t / 0.18)))
+    if rule > 0:
+        img[y - 14:y - 10, x:x + rule] = img[y - 14:y - 10, x:x + rule] * (1 - a) + RED * a
+    n = int(len(text) * clamp01((t - 0.06) / 0.22))
+    if n > 0:
+        draw_text(img, text[:n], 'inter_bold', 30, WHITE, x, y, 'lt', 6, alpha=a)
+    if sub and t > 0.2:
+        draw_text(img, sub, 'mono', 20, WHITE, x, y + 44, 'lt', 2, alpha=clamp01((t - 0.2) / 0.15) * 0.85)
+    if idx:
+        draw_text(img, idx, 'mono_med', 20, RED, x + rule + 14 if rule else x, y - 24, 'lt', 2, alpha=a)
+    return img
