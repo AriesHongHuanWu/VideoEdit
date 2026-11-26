@@ -1,6 +1,6 @@
 # 素材日誌 Footage log
 
-191 clips. Composition / clarity are 1–5; use score is 1–10. Camera motion is measured from keyframes (0.5–2 s apart) and checked visually. Locations are named only when a landmark or sign in frame confirms them.
+249 clips. Composition / clarity are 1–5; use score is 1–10. Camera motion is measured from keyframes (0.5–2 s apart) and checked visually. Locations are named only when a landmark or sign in frame confirms them.
 
 
 ## unknown date
@@ -218,3 +218,94 @@
 | DJI_0214.MP4 | 4.4s | unknown | Slow walk down a dim church side aisle toward a small lit side altar under an arched window, a pale green Venetian-glass chandelier hanging in front of it; red damask-wrapped column in the left foreground, white wall with red hanging sanctuary lamps and Stations of the Cross on the right, dark pews and a patterned stone/mosaic floor catching window light. Moody low light. | steady forward walk (push-in) 0-3.7 s; quick pan left with blur 3.7-4.4 s | 4 | 3 | 0.0-2.5s (push-in down the aisle toward the lit altar with green glass chandelier and red lamps) / 3.0-3.6s (closer view of the altar framed by red column and sanctuary lamps) | 5 |
 | DJI_0215.MP4 | 7.2s | unknown | Church detail: a stone font covered by a round, glittering glass-mosaic disc in yellow, green and red, topped by a small carved dark-wood statue of a saint with a raised right arm, standing against a plain whitewashed wall with small labels. The camera tilts up from the shimmering glass disc to the statue and back down to the disc. Soft, dim window light. | tilt up from the disc to the statue 0-2 s; hold/slow tilt down with slight pull-out 2-5 s; continued tilt down onto the disc 5-7 s, blurred at the very end | 3 | 3 | 4.5-6.0s (shimmering multicoloured glass-mosaic disc on the font) / 1.5-3.0s (carved wooden saint with raised arm against the plain white wall) | 4 |
 | DJI_0219.MP4 | 10.1s | unknown | Quiet residential lane on a bright sunny morning: first a blurred look along a peeling pink plaster wall at an open green workshop door (no. 16), then a POV walk down a narrow calle paved with irregular grey flagstones between old brick walls and cream houses with green shutters, trees spilling over garden walls, deep blue sky, hard sun and crisp shadows. No people. | pan right/tilt up with roll along the pink wall 0-3 s (blurred); fast pan right with pull-out 3-5.5 s; steady forward walk (push-in) down the lane 5.5-10 s | 3 | 3 | 6.0-9.0s (sharp POV walk down the sunny flagstone lane between brick walls and green shutters) / 9.0-10.0s (lane opening toward trees and blue sky) | 5 |
+
+
+# 22–28 May: Burano, Roma, Napoli, Firenze (logged from the 4K originals)
+
+## 2026-05-22
+
+| File | Dur | Location | Content | Camera motion | Comp | Clarity | Best moments | Score |
+|---|---|---|---|---|---|---|---|---|
+| DJI_0220.MP4 | 9.5s | unknown | Outdoor cafe table: latte macchiato and plates, companions talking; dip under the table to a sparrow on the paving | pulling back, handheld drift | 2 | 5 | 0.5-2.0s | 2 |
+| DJI_0221.MP4 | 29.0s | unknown | Lying on a lawn under pines (red building behind), then a close selfie on the grass | pulling back, handheld drift | 2 | 5 | 7.0-12.0s | 1 |
+| DJI_0222.MP4 | 24.4s | Burano, Venice lagoon (painted houses) | Walk along a canal lined with pink, yellow, green and blue houses, moored boats, tourists; steady canal view from 17 s | walking, gentle forward | 5 | 5 | 17.3-23.4s | 9 |
+| DJI_0223.MP4 | 40.9s | Venice area shop (unconfirmed) | Camera held sideways inside a bakery: biscuit display, customers (rotated 90 degrees) | pulling back, tilt up | 1 | 4 |  | 1 |
+| DJI_0224.MP4 | 19.3s | Venice area alley (unconfirmed) | Selfie: companions eating fried snacks in an alley | handheld drift | 2 | 3 |  | 1 |
+| DJI_0225.MP4 | 11.4s | Burano, Venice lagoon (painted houses) | Through a pink sottoportego arch, walking a dark passage toward a bright canal street; silhouettes | walking forward | 4 | 2 | 0.4-2.5s | 7 |
+| DJI_0226.MP4 | 22.6s | Burano, Venice lagoon (painted houses) | Alleys between painted houses, then a canal with turquoise boats and a brick bridge | walking, pans | 4 | 4 | 16.0-21.7s | 8 |
+| DJI_0227.MP4 | 2.6s | Burano, Venice lagoon (painted houses) | Brick bridge over a canal framed by pink, green and blue facades | slow push | 5 | 5 | 0.3-2.3s | 9 |
+| DJI_0228.MP4 | 10.4s | Burano (likely) | Narrow passage between orange walls opening onto striped awnings; a companion steps in | moving forward, tilt down | 3 | 2 | 0.5-4.0s | 3 |
+| DJI_0229.MP4 | 19.2s | Venice lagoon, Burano/Mazzorbo area (exact spot unconfirmed) | Lawn and path to the lagoon edge, trees and lamp posts, flat horizon | slow pan left | 3 | 5 | 8.0-17.5s | 4 |
+| DJI_0230.MP4 | 3.3s | Venice lagoon, Burano/Mazzorbo area (exact spot unconfirmed) | Umbrella pines framing the lagoon and a pier | moving forward, pan left | 3 | 5 | 0.2-3.0s | 3 |
+| DJI_0231.MP4 | 9.8s | Venice lagoon, Burano/Mazzorbo area (exact spot unconfirmed) | Wooden footbridge across the lagoon, people and a dog crossing | moving forward, handheld drift | 3 | 5 | 0.5-4.0s | 4 |
+| DJI_0232.MP4 | 32.0s | Venice lagoon, Burano/Mazzorbo area (exact spot unconfirmed) | Path through a vineyard and garden, brick bell tower in the distance, companions walking | walking forward | 3 | 5 | 8.0-18.5s | 4 |
+| DJI_0233.MP4 | 10.7s | Venice lagoon, Burano/Mazzorbo area (exact spot unconfirmed) | Vineyard rows leading to the brick bell tower | slow push | 4 | 5 | 0.5-6.0s | 5 |
+| DJI_0234.MP4 | 4.2s | Venice lagoon, Burano/Mazzorbo area (exact spot unconfirmed) | Close-up of pink roses in the vineyard | static | 4 | 5 | 1.0-3.7s | 4 |
+| DJI_0235.MP4 | 4.9s | Venice lagoon, Burano/Mazzorbo area (exact spot unconfirmed) | Pink roses, push in, then tilt to the vineyard and a little wooden bridge | pan left | 4 | 5 | 1.2-2.8s | 4 |
+| DJI_0236.MP4 | 4.8s | Venice lagoon, Burano/Mazzorbo area (exact spot unconfirmed) | Lagoon shore and distant boardwalk, flat light | static | 2 | 3 |  | 2 |
+| DJI_0237.MP4 | 25.0s | Venice (exact spot unknown) | Bakery counter with focaccia and pizza slices, customers ordering | handheld drift | 2 | 4 | 6.0s | 2 |
+| DJI_0238.MP4 | 7.5s | Venice (exact spot unknown) | Crowded gelato counter, companions choosing flavours | moving forward, pan left | 2 | 3 |  | 2 |
+| DJI_0239.MP4 | 2.9s | Venice (exact spot unknown) | Gelato counter, short take | pulling back, pan left | 2 | 4 |  | 1 |
+| DJI_0240.MP4 | 22.7s | Venice (exact spot unknown) | Gelato tasting in a shopping alley, companions (selfie distance) | pulling back, pan right | 2 | 2 |  | 1 |
+| DJI_0241.MP4 | 22.5s | Venice (exact spot unknown) | Close-ups of a gelato cone being shared | moving forward, handheld drift | 2 | 1 |  | 2 |
+| DJI_0242.MP4 | 12.3s | Venice (exact spot unknown) | Gelato cone, then a selfie under shop lights | pulling back, pan left | 1 | 2 |  | 1 |
+
+## 2026-05-23
+
+| File | Dur | Location | Content | Camera motion | Comp | Clarity | Best moments | Score |
+|---|---|---|---|---|---|---|---|---|
+| DJI_0249.MP4 | 11.7s | railway station hall (unconfirmed) | Selfie walking under a grid ceiling past ticket gates | pulling back, pan left | 2 | 5 |  | 1 |
+| DJI_0251.MP4 | 8.5s | Rome, street by a station (exact street unconfirmed) | Low angle across a busy street: white taxis crossing, shopfronts, deep blue sky | static, slight pan | 3 | 5 | 2.6-6.0s | 5 |
+| DJI_0264.MP4 | 7.2s | Rome, obelisk fountain (consistent with Piazza della Rotonda; square not named on screen) | Crowd around a fountain, tilt up to the obelisk against blue sky and cumulus | tilt up then hold | 5 | 4 | 1.5-5.5s | 9 |
+| DJI_0275.MP4 | 2.1s | Rome cafe (unconfirmed) | Camera upside down in a shop | pulling back, pan left | 1 | 2 |  | 0 |
+| DJI_0277.MP4 | 32.8s | Rome cafe (unconfirmed) | Coffee shop counter with red packaging, companions paying, pastry case | pulling back, pan left | 3 | 4 | 13.5-19.0s | 3 |
+| DJI_0279.MP4 | 46.5s | Rome cafe (unconfirmed) | Selfie with companions inside a busy cafe | pulling back, pan right | 1 | 3 |  | 1 |
+| DJI_0290.MP4 | 7.0s | Rome (exact street unconfirmed) | Low angle on a sticker-covered pole and stone street corner | slow tilt | 3 | 4 | 1.5-5.0s | 5 |
+| DJI_0292.MP4 | 6.3s | Rome (exact street unconfirmed) | Crowd walking out of a street onto a wide avenue with umbrella pines, golden light | walking forward | 4 | 5 | 3.4-5.0s | 7 |
+| DJI_0303.MP4 | 21.4s | Osteria da Fortunata, Rome (plates printed "ROMA") | Pesto and ragu pasta on printed terracotta plates, companions photographing | moving forward, pan right | 4 | 2 | 8.0-13.4s, 15.2-20.5s | 7 |
+| DJI_0305.MP4 | 43.8s | Osteria da Fortunata, Rome | Dinner table, eating, companions | moving forward, handheld drift | 2 | 2 |  | 2 |
+| DJI_0318.MP4 | 26.1s | Piazza Navona, Rome (hoarding reads 'Chiesa di Sant'Agnese in Agone') | Dusk: Sant'Agnese in Agone and the Four Rivers obelisk, billboard, selfies; wide piazza at blue hour from 20 s | pans, walking | 5 | 1 | 0.4-2.0s, 20.6-25.0s | 9 |
+
+## 2026-05-24
+
+| File | Dur | Location | Content | Camera motion | Comp | Clarity | Best moments | Score |
+|---|---|---|---|---|---|---|---|---|
+| DJI_0346.MP4 | 6.8s | unknown | Selfie eating a pizza slice indoors | pulling back, handheld drift | 1 | 4 |  | 1 |
+| DJI_0357.MP4 | 7.3s | Napoli (exact street unconfirmed) | Street food cone and a beer in a crowded narrow street | moving forward, handheld drift | 2 | 3 | 4.0-6.5s | 2 |
+| DJI_0359.MP4 | 19.8s | Napoli (exact street unconfirmed) | Selfie walking a busy street of shops and balconies | pulling back, pan left | 1 | 5 |  | 1 |
+| DJI_0370.MP4 | 3.9s | Galleria Umberto I, Napoli | Entrance arch and glass vault of the gallery, crowd, pan right along the facade | pan right | 4 | 5 | 0.2-1.5s | 8 |
+| DJI_0372.MP4 | 4.8s | la Sfogliatella Mary, Napoli | Pastry kiosk with awning, queue of customers | static | 3 | 5 | 1.0-4.2s | 5 |
+| DJI_0383.MP4 | 9.6s | Basilica di San Francesco di Paola, Napoli (consistent with the next clip on Piazza del Plebiscito) | Round nave with columns, tilt up to the coffered dome and lantern, perfectly symmetric | tilt up | 5 | 3 | 6.0-9.2s | 9 |
+| DJI_0385.MP4 | 6.0s | Piazza del Plebiscito, Napoli (Palazzo Reale) | Locked-off wide of the piazza and royal palace under cumulus clouds | static | 5 | 5 | 0.3-5.8s | 8 |
+| DJI_0396.MP4 | 6.1s | Napoli (exact street unconfirmed) | Narrow street of souvenir stalls, walking into the low sun with strong lens flare | walking forward | 4 | 4 | 1.3-4.5s | 8 |
+| DJI_0398.MP4 | 4.6s | unknown | Courtyard with potted palms, companion walking | moving forward, pan right | 2 | 5 |  | 2 |
+
+## 2026-05-26
+
+| File | Dur | Location | Content | Camera motion | Comp | Clarity | Best moments | Score |
+|---|---|---|---|---|---|---|---|---|
+| DJI_0588.MP4 | 6.9s | unknown | Bowl of noodles with chopsticks | static | 2 | 2 |  | 1 |
+
+## 2026-05-27
+
+| File | Dur | Location | Content | Camera motion | Comp | Clarity | Best moments | Score |
+|---|---|---|---|---|---|---|---|---|
+| DJI_0590.MP4 | 17.3s | Firenze Santa Maria Novella station | Station exterior and basilica bell tower, then selfie | pulling back, pan left | 2 | 4 | 1.0-4.0s | 2 |
+| DJI_0601.MP4 | 9.2s | Duomo di Firenze (Santa Maria del Fiore) | Marble flank of the cathedral and Brunelleschi dome, construction hoardings in the foreground | walking, slow pan | 5 | 5 | 2.7-6.5s | 9 |
+| DJI_0603.MP4 | 6.3s | Firenze, leather market (exact market unconfirmed) | Leather bag stalls and crowd, then selfie | walking | 3 | 3 | 0.3-2.4s | 4 |
+| DJI_0614.MP4 | 5.6s | Firenze (exact street unconfirmed) | Narrow street between rusticated stone palazzi | static | 3 | 4 | 0.3-5.0s | 5 |
+| DJI_0616.MP4 | 23.6s | Ponte Vecchio, Firenze (Cellini bust in frame) | Walk across the bridge between jewellers, then the centre opening with the bust and the Arno | walking | 4 | 5 | 1.0-3.0s, 18.7-22.6s | 7 |
+| DJI_0627.MP4 | 12.1s | Cinema Odeon, Firenze (interior) | Ornate cinema interior, then selfie | pulling back, pan left | 2 | 1 | 1.0s | 2 |
+| DJI_0629.MP4 | 7.5s | Cinema Odeon, Firenze (lettering on facade) | Rusticated stone facade with ODEON lettering, passer-by | slow tilt | 3 | 5 | 1.6-4.8s | 5 |
+
+## 2026-05-28
+
+| File | Dur | Location | Content | Camera motion | Comp | Clarity | Best moments | Score |
+|---|---|---|---|---|---|---|---|---|
+| DJI_0640.MP4 | 3.0s | Capuchin museum, Rome (consistent with displays) | Vitrine of apothecary jars and mortars | moving forward, handheld drift | 2 | 2 |  | 2 |
+| DJI_0642.MP4 | 3.2s | Capuchin museum, Rome (consistent with displays) | Painting of a friar holding a crucifix | tilt up | 2 | 1 |  | 2 |
+| DJI_0644.MP4 | 14.8s | Capuchin crypt, Rome (consistent with displays) | Chapels decorated with bones, dim | moving forward, pan left | 3 | 2 | 8.0-11.7s | 2 |
+| DJI_0655.MP4 | 4.2s | unknown | Shop window of trading cards | pulling back, tilt down | 1 | 3 |  | 1 |
+| DJI_0657.MP4 | 17.5s | Piazza Venezia / Vittoriano, Rome | Statues over Piazza Venezia, then the Vittoriano steps and colonnade with a selfie at the right edge | pan left | 3 | 4 | 0.5-1.5s, 9.5-12.4s (crop left) | 6 |
+| DJI_0668.MP4 | 4.3s | Vittoriano, Rome | Marble fountain and terraces with flags, umbrella in the left foreground | static | 4 | 3 | 0.5-3.4s | 7 |
+| DJI_0670.MP4 | 1.6s | unknown | Finger over the lens | moving forward, pan left | 1 | 1 |  | 0 |

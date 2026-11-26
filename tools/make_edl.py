@@ -191,7 +191,10 @@ T.until_beat(34, hero('v_clone', 32, 34, cache_offset=110, punch=False,
                       fx=[{'type': 'clone', 'offsets': [-80, 90], 'appear': [tb(0.5), tb(1)], 'mask_dir': os.path.join(P, 'mask_clone'), 't0': 0, 't1': 9}]))
 TR('zoom', 7, 9, z=0.6, cb=(0.47 * W, 0.44 * H))  # dive into the canal's vanishing point
 T.sound(tb(32.5), 'click', gain=-8, f=2600); T.sound(tb(33), 'click', gain=-8, f=3100)
-T.until_beat(36, hero('v_bridges', 34, 36, zoom=[[0, 1.0], [tb(2), 1.06, 'linear']], fx=[{'type': 'red_inset', 't0': 0.0, 't1': tb(1), 'scale': 0.72}]))
+_b = rome.get('burano')
+T.until_beat(36, hero(_b or 'v_bridges', 34, 36, zoom=[[0, 1.0], [tb(2), 1.06, 'linear']],
+                      fx=[{'type': 'red_inset', 't0': 0.0, 't1': tb(1), 'scale': 0.72}] +
+                         ([{'type': 'label', 'text': 'BURANO', 'sub': '22.05.2026', 'idx': '02', 't0': tb(1) + 0.08, 't1': 9}] if _b else [])))
 TR('whip', 6, 6, dir=1)
 T.sound(tb(35), 'impact', gain=-12, bright=0.4)
 T.until_beat(38, hero('v_arcade', 36, 38, zoom=[[0, 1.0], [tb(2), 1.07, 'linear']],
@@ -199,7 +202,7 @@ T.until_beat(38, hero('v_arcade', 36, 38, zoom=[[0, 1.0], [tb(2), 1.07, 'linear'
                            'tracking': 0, 'tracking_to': 26, 'rise': 50}]))
 TR('redbar', 7, 7, dir=-1)
 T.until_beat(40, hero('v_salute', 38, 40, zoom=[[0, 1.0], [tb(2), 1.05, 'linear']],
-                      fx=[{'type': 'label', 'text': 'SANTA MARIA DELLA SALUTE', 'sub': '21.05.2026', 'idx': '02', 't0': 0.2, 't1': 9}]))
+                      fx=[{'type': 'label', 'text': 'SANTA MARIA DELLA SALUTE', 'sub': '21.05.2026', 'idx': '03' if rome.get('burano') else '02', 't0': 0.2, 't1': 9}]))
 TR('push', 6, 8, axis='y', dir=-1)                 # tilt up the facade
 # ------------------------------------------------------------------ BUILDUP (b40 - b48): accelerating transitions
 T.until_beat(41, hero('v_taxi', 40, 41, fx=[{'type': 'hud', 'track': 'taxi2', 'label': 'TRK_02  TAXI', 't0': 0.0, 't1': 9}]))
