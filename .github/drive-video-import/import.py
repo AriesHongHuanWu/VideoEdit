@@ -327,5 +327,28 @@ def main():
     print(f"Published {len(completed)} originals as {len(checked)} verified assets", flush=True)
 
 
+def report_transfer_failure(error):
+    from base64 import b64encode
+    from traceback import format_exception_only
+
+    diagnostic = ''.join(format_exception_only(type(error), error)).strip()
+    diagnostic = diagnostic.replace(os.environ["GH_TOKEN"], "[redacted]")
+    file = "/contents/.github/drive-video-import/last-transfer-error.txt"
+    params = {"ref": "codex/import-italy-rome-20261126"}
+    payload = {"message": "Record cloud transfer diagnostic",
+               "branch": params["ref"], "content": b64encode(diagnostic[-2000:].encode()).decode()}
+    response = requests.get(API + file, params=params, headers=HEADERS, timeout=(10, 25))
+    if response.status_code == 200:
+        payload["sha"] = response.json()["sha"]
+    api("PUT", file, json=payload)
+
+
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as error:
+        try:
+            report_transfer_failure(error)
+        except Exception:
+            pass
+        raise
