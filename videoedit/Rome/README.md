@@ -1,0 +1,39 @@
+# Rome
+
+| Original video | Bytes | GitHub assets |
+| --- | ---: | --- |
+| DJI_0249.MP4 | 155,257,909 | [Download](https://github.com/AriesHongHuanWu/VideoEdit/releases/download/videoedit-italy-rome/Rome--DJI_0249.MP4) |
+| DJI_0251.MP4 | 113,022,672 | [Download](https://github.com/AriesHongHuanWu/VideoEdit/releases/download/videoedit-italy-rome/Rome--DJI_0251.MP4) |
+| DJI_0264.MP4 | 95,923,189 | [Download](https://github.com/AriesHongHuanWu/VideoEdit/releases/download/videoedit-italy-rome/Rome--DJI_0264.MP4) |
+| DJI_0275.MP4 | 29,171,070 | [Download](https://github.com/AriesHongHuanWu/VideoEdit/releases/download/videoedit-italy-rome/Rome--DJI_0275.MP4) |
+| DJI_0277.MP4 | 432,738,762 | [Download](https://github.com/AriesHongHuanWu/VideoEdit/releases/download/videoedit-italy-rome/Rome--DJI_0277.MP4) |
+| DJI_0279.MP4 | 612,510,247 | [Download](https://github.com/AriesHongHuanWu/VideoEdit/releases/download/videoedit-italy-rome/Rome--DJI_0279.MP4) |
+| DJI_0290.MP4 | 94,000,051 | [Download](https://github.com/AriesHongHuanWu/VideoEdit/releases/download/videoedit-italy-rome/Rome--DJI_0290.MP4) |
+| DJI_0292.MP4 | 84,229,211 | [Download](https://github.com/AriesHongHuanWu/VideoEdit/releases/download/videoedit-italy-rome/Rome--DJI_0292.MP4) |
+| DJI_0303.MP4 | 282,865,618 | [Download](https://github.com/AriesHongHuanWu/VideoEdit/releases/download/videoedit-italy-rome/Rome--DJI_0303.MP4) |
+| DJI_0305.MP4 | 577,377,148 | [Download](https://github.com/AriesHongHuanWu/VideoEdit/releases/download/videoedit-italy-rome/Rome--DJI_0305.MP4) |
+| DJI_0318.MP4 | 344,352,095 | [Download](https://github.com/AriesHongHuanWu/VideoEdit/releases/download/videoedit-italy-rome/Rome--DJI_0318.MP4) |
+| DJI_0346.MP4 | 90,339,459 | [Download](https://github.com/AriesHongHuanWu/VideoEdit/releases/download/videoedit-italy-rome/Rome--DJI_0346.MP4) |
+| DJI_0357.MP4 | 97,113,611 | [Download](https://github.com/AriesHongHuanWu/VideoEdit/releases/download/videoedit-italy-rome/Rome--DJI_0357.MP4) |
+| DJI_0359.MP4 | 261,872,972 | [Download](https://github.com/AriesHongHuanWu/VideoEdit/releases/download/videoedit-italy-rome/Rome--DJI_0359.MP4) |
+| DJI_0370.MP4 | 53,070,245 | [Download](https://github.com/AriesHongHuanWu/VideoEdit/releases/download/videoedit-italy-rome/Rome--DJI_0370.MP4) |
+| DJI_0372.MP4 | 63,801,371 | [Download](https://github.com/AriesHongHuanWu/VideoEdit/releases/download/videoedit-italy-rome/Rome--DJI_0372.MP4) |
+| DJI_0383.MP4 | 127,840,952 | [Download](https://github.com/AriesHongHuanWu/VideoEdit/releases/download/videoedit-italy-rome/Rome--DJI_0383.MP4) |
+| DJI_0385.MP4 | 81,108,960 | [Download](https://github.com/AriesHongHuanWu/VideoEdit/releases/download/videoedit-italy-rome/Rome--DJI_0385.MP4) |
+| DJI_0396.MP4 | 81,572,550 | [Download](https://github.com/AriesHongHuanWu/VideoEdit/releases/download/videoedit-italy-rome/Rome--DJI_0396.MP4) |
+| DJI_0398.MP4 | 62,164,848 | [Download](https://github.com/AriesHongHuanWu/VideoEdit/releases/download/videoedit-italy-rome/Rome--DJI_0398.MP4) |
+| DJI_0588.MP4 | 91,907,094 | [Download](https://github.com/AriesHongHuanWu/VideoEdit/releases/download/videoedit-italy-rome/Rome--DJI_0588.MP4) |
+| DJI_0590.MP4 | 229,238,578 | [Download](https://github.com/AriesHongHuanWu/VideoEdit/releases/download/videoedit-italy-rome/Rome--DJI_0590.MP4) |
+| DJI_0601.MP4 | 122,182,658 | [Download](https://github.com/AriesHongHuanWu/VideoEdit/releases/download/videoedit-italy-rome/Rome--DJI_0601.MP4) |
+| DJI_0603.MP4 | 84,434,673 | [Download](https://github.com/AriesHongHuanWu/VideoEdit/releases/download/videoedit-italy-rome/Rome--DJI_0603.MP4) |
+| DJI_0614.MP4 | 75,018,022 | [Download](https://github.com/AriesHongHuanWu/VideoEdit/releases/download/videoedit-italy-rome/Rome--DJI_0614.MP4) |
+| DJI_0616.MP4 | 312,059,805 | [Download](https://github.com/AriesHongHuanWu/VideoEdit/releases/download/videoedit-italy-rome/Rome--DJI_0616.MP4) |
+| DJI_0627.MP4 | 159,778,347 | [Download](https://github.com/AriesHongHuanWu/VideoEdit/releases/download/videoedit-italy-rome/Rome--DJI_0627.MP4) |
+| DJI_0629.MP4 | 99,659,828 | [Download](https://github.com/AriesHongHuanWu/VideoEdit/releases/download/videoedit-italy-rome/Rome--DJI_0629.MP4) |
+| DJI_0640.MP4 | 40,200,702 | [Download](https://github.com/AriesHongHuanWu/VideoEdit/releases/download/videoedit-italy-rome/Rome--DJI_0640.MP4) |
+| DJI_0642.MP4 | 42,589,944 | [Download](https://github.com/AriesHongHuanWu/VideoEdit/releases/download/videoedit-italy-rome/Rome--DJI_0642.MP4) |
+| DJI_0644.MP4 | 195,857,940 | [Download](https://github.com/AriesHongHuanWu/VideoEdit/releases/download/videoedit-italy-rome/Rome--DJI_0644.MP4) |
+| DJI_0655.MP4 | 56,768,659 | [Download](https://github.com/AriesHongHuanWu/VideoEdit/releases/download/videoedit-italy-rome/Rome--DJI_0655.MP4) |
+| DJI_0657.MP4 | 232,274,255 | [Download](https://github.com/AriesHongHuanWu/VideoEdit/releases/download/videoedit-italy-rome/Rome--DJI_0657.MP4) |
+| DJI_0668.MP4 | 57,863,163 | [Download](https://github.com/AriesHongHuanWu/VideoEdit/releases/download/videoedit-italy-rome/Rome--DJI_0668.MP4) |
+| DJI_0670.MP4 | 22,741,463 | [Download](https://github.com/AriesHongHuanWu/VideoEdit/releases/download/videoedit-italy-rome/Rome--DJI_0670.MP4) |
