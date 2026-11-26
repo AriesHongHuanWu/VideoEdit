@@ -8,9 +8,16 @@ FX_NAMES = {'flash_pop': 'Flash Pop In', 'zoom_out': 'Zoom Out', 'glass': 'Glass
             'text': 'Text Exclusion', 'roto_text': 'Rotoscope text', 'hud': 'HUD tracking', 'letterbox': 'red letterbox bounce',
             'red_inset': 'red-frame inset -> pop back', 'title_top': 'full-width red headline', 'duotone': 'red/white duotone flash',
             'red_invert': 'red inverted flash', 'whip': 'whip pan', 'scanlines': 'CRT texture', 'black': 'black', 'red': 'full red',
-            'chroma': 'RGB split'}
+            'chroma': 'RGB split', 'kick': 'camera kick (Camera Motion)', 'punch': 'kick-synced scale punch', 'label': 'typed place label',
+            'pip': 'picture-in-picture', 'soft_glow': '柔光 diffusion', 'light_scatter': '散光 star scatter', 'datalines': 'data-line glitch',
+            'tintstrobe': 'tint strobe', 'bleach': 'bleach flash', 'redblock': 'red half-block', 'glitch': 'RGB glitch'}
+TR_NAMES = {'push': 'push (red seam)', 'whip': 'whip pan', 'zoom': 'zoom-through', 'redbar': 'red bar wipe', 'slice': 'strip slice',
+            'doors': 'doors split', 'pip': 'PIP pop-in -> expand', 'flash': 'Flash Pop In'}
 def fx_desc(seg):
     out = []
+    if seg.get('tr'):
+        tr = seg['tr']
+        out.append(f"IN: {TR_NAMES.get(tr['kind'], tr['kind'])} ({tr['n_out']}+{tr['n_in']} f across the cut)")
     for fx in seg.get('fx', []):
         n = FX_NAMES.get(fx['type'], fx['type'])
         if fx['type'] in ('title_top', 'glass', 'roto_text', 'text'):
@@ -21,7 +28,12 @@ def fx_desc(seg):
     if seg['type'] == 'split':
         out.append(f"red split card '{seg['text']}'")
     if seg['type'] == 'card':
-        out.append({'roma': "red card 'ROMA'", 'red': 'full red frame', 'end': 'end card (wine red + ITALIA)'}.get(seg['card'], seg['card']))
+        out.append({'roma': "red card 'ROMA'", 'red': 'full red frame', 'end': 'end card (wine red + ITALIA)', 'wine': '2-frame dark-red breath',
+                    'white': 'white card'}.get(seg['card'], seg['card']))
+    if seg['type'] == 'stutter':
+        out.append(f"stutter edit {seg['A']['shot']} / {seg['B']['shot']} ({seg['pattern']})")
+    if seg['type'] == 'vsplit':
+        out.append('split-screen: ' + ' | '.join(p['shot'] for p in seg['panels']))
     if seg['type'] == 'intro':
         out.append("'postcards from ITALIA' intro: 6 strips -> band -> decode -> band opens")
     if seg.get('wipe_in'):
