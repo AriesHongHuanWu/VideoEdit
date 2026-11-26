@@ -39,6 +39,12 @@ class Timeline:
                 if fx['type'] == 'clone':
                     extra = max(extra, max(fx['offsets']))
             self._need(seg['shot'], off + n + extra + 2)
+        if seg['type'] == 'stutter':
+            for k in ('A', 'B'):
+                self._need(seg[k]['shot'], seg[k].get('cache_offset', 0) + n + 2)
+        for fx in seg.get('fx', []):
+            if fx['type'] == 'pip':
+                self._need(fx['shot'], fx.get('offset', 0) + n + 2)
         if seg['type'] == 'vsplit':
             for p in seg['panels']:
                 self._need(p['shot'], p.get('offset', 0) + n + 2)

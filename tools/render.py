@@ -152,7 +152,11 @@ def apply_fx(img, seg, tl, fi, ctx, base_fn):
                 h = hmax * E.spring(tl - t0, freq=3.2, damp=9.0)
             else:
                 h = hmax * (1 - E.ease_in_cubic((tl - t1) / 0.12))
-            img = E.letterbox(img, h)
+            col = E.RED
+            if fx.get('switch') and (tl - t0) > (t1 - t0) * 0.55:
+                k = int((tl - t0) * FPS) % 3
+                col = [E.WHITE, np.array([1.0, 0.82, 0.82], np.float32), E.RED][k]
+            img = E.letterbox(img, h, col)
         elif typ == 'red_inset' and t0 <= tl < t1 + 0.1:
             # red frame inset, pops back to full screen at t1 (over 0.1 s)
             s0 = fx.get('scale', 0.74)
@@ -205,6 +209,30 @@ def apply_fx(img, seg, tl, fi, ctx, base_fn):
             img = E.soft_glow(img, fx.get('amount', 0.55), fx.get('radius', 22), fx.get('thresh', 0.42), mist=fx.get('mist', 0.10))
         elif typ == 'light_scatter' and t0 <= tl < t1:      # 散光
             img = E.light_scatter(img, fx.get('amount', 0.6), fx.get('length', 0.30), gain=fx.get('gain', 3.2))
+        elif typ == 'bleach' and t0 <= tl < t1:
+            img = E.bleach(img, tuple(fx.get('tint', (1.0, 0.92, 0.9))), fx.get('amount', 0.8))
+        elif typ == 'redblock' and t0 <= tl < t1:
+            img = E.red_block(img, fx.get('x0', 0.58), fx.get('x1', 1.0), fx.get('slide', 0.0) * (1 - (tl - t0) / max(1e-6, t1 - t0)))
+        elif typ == 'redbox' and t0 <= tl < t1:
+            img = E.red_box_on_white((tl - t0) / max(1e-6, t1 - t0))
+        elif typ == 'datalines' and t0 <= tl < t1:
+            img = E.data_lines(img, seed=fi)
+        elif typ == 'tintstrobe' and t0 <= tl < t1:
+            if int((tl - t0) * FPS / fx.get('period', 2)) % 2 == 1:
+                img = E.tint(img, tuple(fx.get('tint', (0.62, 1.0, 1.12))))
+        elif typ == 'pip' and t0 <= tl < t1:
+            src = ctx['cache'].frame(fx['shot'], fx.get('offset', 0) + fi)
+            pim = E.place(src)
+            img = E.inset_on(img, pim, fx.get('scale', 0.34), cx=W * fx.get('cx', 0.3), cy=H * fx.get('cy', 0.56), border=fx.get('border', 0))
+        elif typ == 'silhouette' and t0 <= tl < t1:
+            m = _mask(os.path.join(fx['mask_dir'], f"{fi + seg.get('cache_offset', 0):05d}.png"))
+            if m is not None:
+                img = img * (1 - m[..., None]) + m[..., None] * np.asarray(fx.get('color', (1, 1, 1)), np.float32)
+        elif typ == 'strobe_words' and t0 <= tl < t1:
+            if int((tl - t0) * FPS / fx.get('period', 2)) % 2 == 0:
+                for k in range(3):
+                    E.draw_text(img, fx['left'], 'anton', fx.get('size', 150), E.RED, 40, 60 + k * int(fx.get('size', 150) * 1.0), 'lt', 2)
+                    E.draw_text(img, fx['right'], 'anton', fx.get('size', 150), E.RED, W - 40, 60 + k * int(fx.get('size', 150) * 1.0), 'rt', 2)
         elif typ == 'label' and t0 <= tl < t1:
             img = E.label(img, fx['text'], fx.get('sub'), tl - t0, fx.get('x', 72), fx.get('y', H - 118), fx.get('idx'))
         elif typ == 'scanlines' and t0 <= tl < t1:
@@ -217,7 +245,7 @@ def title_top(img, fx, t):
     m = E.text_mask(text, 'anton', size, fx.get('tracking', 0))
     h, w = m.shape
     # punch-in: slide down from above with slight overshoot
-    k = E.ease_out_back(min(1.0, t / 0.16), 1.4)
+    k = E.ease_out_back(min(1.0, t / 0.16), 1.4) if fx.get('anim', True) else 1.0
     y = int(fx.get('y', -12) - (1 - k) * h * 0.55)
     x = (W - w) // 2
     col = np.empty((h, w, 3), np.float32); col[:] = E.RED
@@ -481,6 +509,14 @@ def compose(edl, seg, gi, cache, ctx):
         img = apply_fx(img, seg, tl, fi, ctx, lambda tt: img)
     elif typ == 'intro':
         img = intro(seg, tl, fi, cache, ctx)
+        img = apply_fx(img, seg, tl, fi, ctx, lambda tt: img)
+    elif typ == 'stutter':
+        pat = seg['pattern']; ch = pat[min(len(pat) - 1, max(0, fi) // seg.get('step', 1))]
+        sub = seg[ch]
+        sub_seg = dict(type='shot', shot=sub['shot'], cache_offset=sub.get('cache_offset', 0), f0=seg['f0'], f1=seg['f1'],
+                       dur=seg['dur'], fx=sub.get('fx', []), zoom=sub.get('zoom'))
+        img = shot_frame(sub_seg, cache, tl, fi, ctx['tracks'])
+        img = apply_fx(img, sub_seg, tl, fi, ctx, lambda tt: img)
         img = apply_fx(img, seg, tl, fi, ctx, lambda tt: img)
     else:
         img = E.solid(E.BLACK)

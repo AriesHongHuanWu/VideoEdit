@@ -782,3 +782,36 @@ def label(img, text, sub=None, t=1.0, x=72, y=H - 118, idx=None):
     if idx:
         draw_text(img, idx, 'mono_med', 20, RED, x + rule + 14 if rule else x, y - 24, 'lt', 2, alpha=a)
     return img
+
+# ----------------------------------------------------------------- reference-style graphic punctuation (2D)
+def bleach(img, tint=(1.0, 0.92, 0.9), amount=0.8):
+    """Washed-out overexposed frame (light leak / bleach flash), tinted."""
+    over = overexpose(img, amount)
+    t = np.asarray(tint, np.float32)
+    return np.clip(over * t + (1 - t) * 0.15 * amount, 0, 1).astype(np.float32)
+
+def red_block(img, x0=0.58, x1=1.0, slide=0.0):
+    a, b = int(W * (x0 + slide)), int(W * (x1 + slide))
+    img[:, max(0, a):min(W, b)] = RED
+    return img
+
+def red_box_on_white(u):
+    """White frame with a centred red box that collapses into a thin bar as u goes 0->1."""
+    out = solid(WHITE)
+    bw, bh = int(W * 0.44), int(H * (0.44 * (1 - u) + 0.04 * u))
+    cy = H // 2 + int(u * H * 0.06)
+    out[cy - bh // 2: cy + bh // 2, W // 2 - bw // 2: W // 2 + bw // 2] = RED * (1 - 0.6 * u) + np.array([1, 0.8, 0.8], np.float32) * 0.6 * u
+    return out
+
+def data_lines(img, seed=0, n=26):
+    """Telemetry glitch: thin white data lines and tiny numbers scattered across the frame."""
+    rng = random.Random(seed)
+    for _ in range(n):
+        y = rng.randint(0, H - 2); x0 = rng.randint(0, W - 200); ln = rng.randint(60, 520)
+        img[y:y + 2, x0:x0 + ln] = img[y:y + 2, x0:x0 + ln] * 0.3 + 0.7
+    for _ in range(8):
+        draw_text(img, f"{rng.randint(10, 999)}.{rng.randint(0, 99):02d}", 'mono', 16, WHITE, rng.randint(40, W - 160), rng.randint(40, H - 40), 'lt', 1, alpha=0.85)
+    return img
+
+def tint(img, t=(0.62, 1.0, 1.12)):
+    return np.clip(img * np.asarray(t, np.float32), 0, 1).astype(np.float32)
