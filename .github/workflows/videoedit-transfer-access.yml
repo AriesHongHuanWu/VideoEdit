@@ -1,0 +1,43 @@
+name: Provide temporary VideoEdit transfer access
+on:
+  push:
+    branches:
+      - codex/import-italy-rome-20261126
+    paths:
+      - .github/workflows/videoedit-transfer-access.yml
+permissions:
+  contents: write
+jobs:
+  temporary-access:
+    runs-on: ubuntu-latest
+    timeout-minutes: 110
+    env:
+      GH_TOKEN: ${{ github.token }}
+      COLAB_PUBLIC_KEY: MIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEAmEaW8P5/UeO87idH0pGSqcbxpMtswJ1hW1ZRTDb2Eb5/z7hlWSpz7n5bsq6UVLt6QpC4OB9M2zj9v9qTotnbBSmjnVZHzJcK8L4CB0WXLyX8Em67hNIbfrS3andbcMKfEefd9iu4BILhILgsRYbLs1dlzLussRCM177yGIjeTwKQX/mWVsnn2Wpb1xK7TptpZ9TDt3rLpUiDWddobsgCpbi1WBMQm2nLVFURUTGcdVp1leGLCv/UCOIEeL937iyDDaienFN+6DqHQwCqiW4xoem9YW3l8zpKDNq828EifckAqXN+BbnK4TMSrWuKtXVF2oppzztQszd7UPfDtqn/s5CrmGxt5mCWwJwMRadVhAWSOR/yS4ZjVsRCeuxb0rm2gbI503lvXGasl/qIR2SpJwNsfuS298/FAK44Rx9k1O0fa04ZxD/ZfUPgTcUDkscs6A2hTXnlpqXrL8zJbr2sWsliK4Po79IDPY4YI2J3ssfY8PSUzRcevQILOZKCOxBhAgMBAAE=
+    steps:
+      - name: Encrypt the repository-scoped credential
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          key="$RUNNER_TEMP/videoedit-colab.der"
+          printf '%s' "$COLAB_PUBLIC_KEY" | base64 --decode > "$key"
+          envelope="$(printf '%s' "$GH_TOKEN" | openssl pkeyutl -encrypt -pubin -keyform DER -inkey "$key" -pkeyopt rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha256 -pkeyopt rsa_mgf1_md:sha256 | base64 -w0)"
+          rm -f -- "$key"
+          payload="$(printf '%s' "$envelope" | base64 -w0)"
+          gh api --method PUT "repos/$GITHUB_REPOSITORY/contents/.github/drive-video-import/relay-$GITHUB_RUN_ID.b64" \
+            -f branch="$GITHUB_REF_NAME" -f 'message=Deliver encrypted one-time Colab credential' \
+            -f content="$payload" --silent
+      - name: Keep the scoped session active until the import is published
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 138); do
+            if gh api "repos/$GITHUB_REPOSITORY/releases/tags/videoedit-italy-rome" --jq '.draft' 2>/dev/null | grep -qx false; then
+              echo "VideoEdit archive published."
+              exit 0
+            fi
+            sleep 45
+          done
+          echo "Temporary session expired before publication."
+          exit 1
