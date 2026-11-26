@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "/content/videoedit-transfer-ovyab_7d/repo/.github/drive-video-import/import.py", line 348, in <module>
+    main()
+    ~~~~^^
+  File "/content/videoedit-transfer-ovyab_7d/repo/.github/drive-video-import/import.py", line 280, in main
+    mounted_sources(source)
+    ~~~~~~~~~~~~~~~^^^^^^^^
+  File "/content/videoedit-transfer-ovyab_7d/repo/.github/drive-video-import/import.py", line 113, in mounted_sources
+    raise FileNotFoundError(f"Missing in mounted Drive: {record['group']}/{record['name']}")
+FileNotFoundError: Missing in mounted Drive: Italy/DJI_0013.MP4
