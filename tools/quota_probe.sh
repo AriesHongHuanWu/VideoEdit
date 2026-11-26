@@ -7,5 +7,5 @@ while true; do
   if grep -q "Quota exceeded" "$TMPF" 2>/dev/null; then st=QUOTA; elif [ "$code" = "206" ]; then st=OPEN; else st="OTHER"; fi
   echo "$(date -u +%H:%M:%S) $st code=$code size=$sz" >> "$LOG"
   rm -f "$TMPF"
-  sleep 600
+  sleep 1200
 done

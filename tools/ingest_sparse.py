@@ -33,7 +33,7 @@ def main():
     items = IG.load_manifest()
     todo = [it for it in items if not os.path.exists(os.path.join(IG.RES, IG.safe_stem(it['name']) + '.json'))]
     # folder 2 (shot after Venice -> likely Rome) first, then folder 1
-    todo.sort(key=lambda it: (0 if it['folder'] == 'F2' else 1, it['name']))
+    todo.sort(key=lambda it: (0 if it['folder'].startswith('F2') else 1, it['name']))
     IG.log(f"SPARSE START todo={len(todo)}")
     hold = {}          # name -> not-before time
     streak = 0
