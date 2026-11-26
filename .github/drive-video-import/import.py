@@ -103,6 +103,37 @@ def download(record, path, url):
     raise RuntimeError("Drive confirmation did not reach the file")
 
 
+
+def mounted_sources(source):
+    paths = {group: Path(os.environ[f"COLAB_DRIVE_{group.upper()}"])
+             for group in ("Italy", "Rome")}
+    for record in source:
+        file = paths[record["group"]] / record["name"]
+        if not file.is_file():
+            raise FileNotFoundError(f"Missing in mounted Drive: {record['group']}/{record['name']}")
+        if file.stat().st_size != record["size"]:
+            raise RuntimeError(f"Mounted Drive size differs: {record['name']}")
+    return paths
+
+
+def copy_from_mount(record, target, _url):
+    source = Path(os.environ[f"COLAB_DRIVE_{record['group'].upper()}"]) / record["name"]
+    h, size = hashlib.sha256(), 0
+    with source.open("rb") as incoming, target.open("wb") as outgoing:
+        while chunk := incoming.read(BLOCK):
+            if not size and (len(chunk) < 8 or chunk[4:8] != b"ftyp"):
+                raise RuntimeError("Mounted Drive file is not the original MP4")
+            size += len(chunk)
+            outgoing.write(chunk)
+            h.update(chunk)
+    if size != record["size"]:
+        raise RuntimeError("Mounted Drive file changed while reading")
+    return h.hexdigest()
+
+
+if "COLAB_DRIVE_ITALY" in os.environ:
+    download = copy_from_mount
+
 def matches(asset, size, digest=None):
     return (asset and asset["state"] == "uploaded" and asset["size"] == size
             and (asset.get("digest") or "").startswith("sha256:")
@@ -245,6 +276,8 @@ def main():
     assert len(source) == 252 and sum(r["size"] for r in source) == 64666279928
     assert all(r["group"] in ("Italy", "Rome") and re.fullmatch(r"DJI_\d{4}(?: \d+)?\.MP4", r["name"], re.I)
                and re.fullmatch(r"[-\w]+", r["id"]) and r["size"] > 0 for r in source)
+    if "COLAB_DRIVE_ITALY" in os.environ:
+        mounted_sources(source)
     wanted = dict(asset for r in source for asset in layout(r))
     assert len(wanted) == 254
     release = draft_release()
@@ -264,7 +297,7 @@ def main():
         print(f"Cloud transfer verified for {r['group']}", flush=True)
     standard = [r for r in source if r not in samples and r["size"] <= LIMIT]
     standard.sort(key=lambda r: r["size"], reverse=True)
-    with futures.ThreadPoolExecutor(max_workers=5) as pool:
+    with futures.ThreadPoolExecutor(max_workers=2 if "COLAB_DRIVE_ITALY" in os.environ else 5) as pool:
         jobs = {pool.submit(transfer, release, existing, r): r for r in standard}
         for job in futures.as_completed(jobs):
             try:
