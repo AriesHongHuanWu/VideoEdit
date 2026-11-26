@@ -20,11 +20,23 @@ jobs:
         run: |
           set -euo pipefail
           umask 077
-          key="$RUNNER_TEMP/videoedit-colab.der"
-          printf '%s' "$COLAB_PUBLIC_KEY" | base64 --decode > "$key"
-          envelope="$(printf '%s' "$GH_TOKEN" | openssl pkeyutl -encrypt -pubin -keyform DER -inkey "$key" -pkeyopt rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha256 -pkeyopt rsa_mgf1_md:sha256 | base64 -w0)"
-          rm -f -- "$key"
-          payload="$(printf '%s' "$envelope" | base64 -w0)"
+          python3 -m venv "$RUNNER_TEMP/videoedit-relay"
+          "$RUNNER_TEMP/videoedit-relay/bin/python" -m pip -q install --disable-pip-version-check cryptography==46.0.3
+          payload="$("$RUNNER_TEMP/videoedit-relay/bin/python" - <<'PY'
+          import base64, json, os
+          from cryptography.hazmat.primitives import hashes, serialization
+          from cryptography.hazmat.primitives.asymmetric import padding
+          from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
+          encode = lambda b: base64.b64encode(b).decode()
+          pub = serialization.load_der_public_key(base64.b64decode(os.environ["COLAB_PUBLIC_KEY"]))
+          key = AESGCM.generate_key(bit_length=256)
+          nonce = os.urandom(12)
+          wrapped = pub.encrypt(key, padding.OAEP(mgf=padding.MGF1(hashes.SHA256()), algorithm=hashes.SHA256(), label=None))
+          data = AESGCM(key).encrypt(nonce, os.environ["GH_TOKEN"].encode(), b"VideoEdit Colab transfer")
+          print(encode(json.dumps({"key": encode(wrapped), "nonce": encode(nonce), "data": encode(data)}).encode()))
+          PY
+          )"
           gh api --method PUT "repos/$GITHUB_REPOSITORY/contents/.github/drive-video-import/relay-$GITHUB_RUN_ID.b64" \
             -f branch="$GITHUB_REF_NAME" -f 'message=Deliver encrypted one-time Colab credential' \
             -f content="$payload" --silent
